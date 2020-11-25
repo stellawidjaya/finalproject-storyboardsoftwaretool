@@ -1,0 +1,19 @@
+html, body {
+  margin: 0;
+  padding: 0;
+}
+canvas {
+  display: block;
+}
+
+.shapebuttons {
+    background-color: red;
+    color: white;
+    border: none;
+    font-size: 6px;
+    font-family: Roboto Mono;
+}
+
+.shapebuttons:hover {
+    opacity: 0.5;
+}
