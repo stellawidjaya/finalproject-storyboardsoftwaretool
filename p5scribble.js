@@ -1,13 +1,10 @@
 /*
 This file contains functions for drawing 2d primitives with a handy sketchy look in p5.js.
-
 Author: Janneck Wullschleger in 07/2016
 Web: http://itsjw.de
 Mail: jw@itsjw.de
-
 Updated: 24.02.2017 to use with a reference to the p5 instance.
 Just put it in as param to the constructor.
-
 Much of the source code is taken from the handy library for processing,
 written by Jo Wood, giCentre, City University London based on an idea by Nikolaus Gradwohl.
 The handy library is licensed under the GNU Lesser General Public License: http://www.gnu.org/licenses/.

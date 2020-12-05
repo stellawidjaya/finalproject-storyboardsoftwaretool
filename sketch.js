@@ -1,5 +1,5 @@
 
-let numBoards = 20;
+let numBoards = 5;
 let artboards = [];
 let thumbnails = [];
 let temp = [];
@@ -9,14 +9,17 @@ let init = true;
 
 let scrollbar;
 
-let brushSlider;
 let inputTitle;
 let inputCaption;
-let addButton;
 
+let brushButton;
+let brushSlider;
 let squareButton;
 let circleButton;
 let triangleButton;
+let shapeSlider;
+let eraserButton;
+let eraserSlider;
 
 let s;
 let transparency = 0;
@@ -36,7 +39,7 @@ function setup() {
     canvas.mouseReleased(endPath);
     
     var saveButton = select('#saveButton');
-    saveButton.mousePressed(saveDrawing);
+    saveButton.mousePressed(saveDrawing2);
   
     //start firebase
     var firebaseConfig = {
@@ -79,7 +82,7 @@ function setup() {
     
     inputTitle = createInput();
     
-    caption = createElement('h3', 'caption:');
+    caption = createElement('h3', 'CAPTION:');
     caption.style('color', 'white');
     caption.style('fontFamily', 'Roboto Mono');
     caption.style('fontSize', '10px');
@@ -87,32 +90,42 @@ function setup() {
     inputCaption = createInput();    
     
     //create dom for brushes
-    brushSlider = createSlider(0,10,5,1);
-        change_brushstroke = brushSlider.value();
-
+    brushSlider = createSlider(1,10,5,1);
+    shapeSlider = createSlider(1,10,5,1);
+    eraserSlider = createSlider(2.5,50,25,2.5);
+    //brushCP = createColorPicker('rgb(50,50,50)');
     
     //create buttons for shapes
-    squareButton = createButton('SQUARE');
-    circleButton = createButton('CIRCLE');
-    triangleButton = createButton('TRIANGLE');
+    brushButton = createButton('ACTIVATE BRUSH');
+    squareButton = createButton('DRAW SQUARE');
+    circleButton = createButton('DRAW CIRCLE');
+    triangleButton = createButton('DRAW TRIANGLE');
+    eraserButton = createButton('ACTIVATE ERASER');
     
+    brushButton.mousePressed(activateBrush);
     squareButton.mousePressed(shapeSquare);
     circleButton.mousePressed(shapeCircle);
     triangleButton.mousePressed(shapeTriangle);
+    eraserButton.mousePressed(activateEraser);
     
+    brushButton.class('shapebuttons');
     squareButton.class('shapebuttons');
     circleButton.class('shapebuttons');
     triangleButton.class('shapebuttons');
+    eraserButton.class('shapebuttons');
       
     repositionAll();
     
     displayKey = temp[0];
 
-    
     //create scrollbar
-    scrollbar = new Scrollbar(width-20, 0, 10, height);
+    scrollbar = new Scrollbar(width-30, 0, 10, height);
   
     s = new Scribble();
+}
+
+function activateBrush() {
+    
 }
 
 function shapeSquare() {
@@ -124,6 +137,10 @@ function shapeCircle() {
 }
 
 function shapeTriangle() {
+    
+}
+
+function activateEraser() {
     
 }
 
@@ -143,14 +160,28 @@ function draw() {
     //draw logo banner
     noStroke();
     fill(255,0,0);
-    rect(10, 0, 40, height);
+    rect(20, 0, 40, height);
+    
+    fill(255,0,0,100);
+    rect(0, 20, width-200, 75);
+    
+    fill(255,0,0,150);
+    rect(width-200, 0, 200, height);
     
     fill(255);
-    rect(20, 20, 20, 12.5, 0, 5, 5, 0);
-    rect(20, 35, 20, 12.5, 0, 5, 5, 0);
+    //stroke(brushSlider.value());
+    rect(30, 40, 20, 12.5, 0, 5, 5, 0);
+    rect(30, 55, 20, 12.5, 0, 5, 5, 0);
+    
+    textSize(7.5);
+    textAlign(CENTER,CENTER);
+    text('BO/RDS',40,75);
     
     //draw drawing tools
     drawTools();
+    
+    //stroke(2.5);
+    line();
     
     //draw artboards+thumbnails    
     for (let i=0; i<numBoards; i++) {
@@ -173,18 +204,10 @@ function draw() {
     //save drawing every second
     let time = 0;
     
-    if (millis() >= 2000+time) {
+    /*if (millis() >= 2000+time) {
         saveDrawing(displayKey);
         time = millis();
         console.log(displayKey);
-    }
-    
-    /*for(let x=0; x<=2; x++) {
-        if (time % 2000 == 0) {
-            x++;
-            console.log(x);
-            saveDrawing(data);
-        }
     }*/
     
     //draw scrollbar
@@ -201,11 +224,14 @@ function draw() {
     
     //draw brushstroke  
     var value = brushSlider.value();
+    //var clr = brushCP.color();
     
     if (mouseIsPressed) {
         var point = {
             x: mouseX,
             y: mouseY,
+            stroke: value,
+            //tint: clr,
         }
         
         if (mouseX >= 100 && mouseX <= 682 && mouseY >= height/2-180 && mouseY <= height/2+180) {
@@ -214,15 +240,16 @@ function draw() {
     }
     
     push();
-    
     for (let i=0; i<drawing.length; i++) {
         var path = drawing[i];
         
-        strokeWeight(value);
-        stroke(50);
+        //strokeWeight(value);
         noFill();
+        stroke(50);
         beginShape();
         for (let j=0; j<path.length; j++) {
+            strokeWeight(path[j].stroke);
+            //stroke(path[j].tint);
             vertex(path[j].x, path[j].y);
         }
         endShape();    
@@ -233,10 +260,10 @@ function draw() {
 
 class Board {
     constructor() {
-        this.x = 100;
-        this.y = height/2;
-        this.width = 582;
-        this.height = 360;
+        this.x = 150;
+        this.y = height/2+25;
+        this.width = 776;
+        this.height = 480;
     }
     
     display() {
@@ -349,7 +376,7 @@ class Scrollbar {
         fill(50);
         rect(this.barX, this.barY, this.barW, this.barH);
         if (this.beyond || this.locked) {
-            fill(200);
+            fill(255);
         } else {
             fill('RED');
         }
@@ -359,13 +386,72 @@ class Scrollbar {
 }
 
 function drawTools() {
-    noStroke();
-    fill(255);
-    rect(125, 0, 40, 60, 0, 0, 15, 15);
+    //brush
+    push();
+        angleMode(DEGREES);
+        translate(240,-85);
+        rotate(45);
     
-    square(410, 10, 30);
-    circle(475, 25, 30);
-    triangle(525, 10, 540, 40, 510, 40);
+        stroke(255);
+        strokeWeight(brushSlider.value());
+        line(132.5, 35, 160, 25);
+        noStroke();
+        fill(255,0,0);
+        triangle(130, 41, 135, 41, 132.5, 35);
+        noFill();
+        stroke(255,0,0);
+        strokeWeight(1.5);
+        rect(125, 50, 15, 45, 0, 0, 0, 0);
+        triangle(125, 50, 140, 50, 132.5, 35);   
+    pop();
+    
+    //eraser
+    push();
+    stroke(255);
+    strokeWeight(eraserSlider.value());
+    line(1072.5, 40, 1090, 47.5);
+    pop();
+    
+    push();
+        translate(1050,40);
+        rotate(45);
+        
+        noFill();
+        stroke(255,0,0);
+        strokeWeight(1.5);
+        rect(0, 0, 30, 30);
+        arc(15, 0, 30, 30, 180, 0);
+    pop();
+    
+    //slider format
+    textSize(7.5);
+    text('STROKE WEIGHT:',390,40);
+    text('1',360,60);
+    text('10',450,60);
+    text('STROKE WEIGHT:',830,40);
+    text('1',800,60);
+    text('10',890,60);
+    text('STROKE WEIGHT:',1150,40);
+    text('2.5',1125,60);
+    text('50',1210,60);
+    
+    //lines
+    strokeWeight(2.5);
+    stroke(50);
+    line(150,25,150,90);
+    line(480,25,480,90);
+    line(920,25,920,90);
+    line(1240,25,1240,90);
+    
+    //shapes
+    noStroke();
+    square(517.5, 37.5, 40);
+    circle(607.5, 57.5, 40);
+    triangle(677.5, 37.5, 697.5, 77.5, 657.5, 77.5);
+    noFill();
+    strokeWeight(2.5);
+    stroke(255);
+    square(735, 37.5, 40);
 }
 
 function saveDrawing(key) {
@@ -383,6 +469,21 @@ function saveDrawing(key) {
     //ref.push(data);
 }
 
+function saveDrawing2() {
+    let ref = database.ref('drawings');
+    let data = {
+        name: "stella",
+        drawing: drawing,
+    }
+    
+    //ref.child(key).update({'drawing': drawing})
+    
+    var updates = {};
+    updates['/drawing/' + key] = data;
+    ref.update(updates);
+    ref.push(data);
+}
+
 function gotData(data) {
     let elts = selectAll('.listing');
     for (let i=0; i < elts.length; i++) {
@@ -395,8 +496,8 @@ function gotData(data) {
     for (let i=0; i < keys.length; i++) {
         var key = keys[i];
         append(temp, key);
-        //var li = createElement('li', '');
-        //li.class('listing');
+        var li = createElement('li', '');
+        li.class('listing');
         //var ahref = createA('#', key);
         //ahref.mousePressed(showDrawing);
         //ahref.parent(li);
@@ -427,32 +528,46 @@ function showDrawing(key) {
     }
 }
 
-function mouseDragged() {
+/*function mouseDragged() {
     let value = brushSlider.value();
     
     strokeWeight(value);
     stroke(50,50,50);
     line(pmouseX, pmouseY, mouseX, mouseY);
-}
+}*/
 
 function repositionAll() {
-    title.position(100,125);
-    inputTitle.position(100, 150);
-    inputTitle.size(250,25);
+    title.position(975, 145);
+    inputTitle.position(975, 170);
+    inputTitle.size(250, 25);
     
-    caption.position(100,550);
-    inputCaption.position(100, 575);
-    inputCaption.size(576,25);
+    caption.position(975, 500);
+    inputCaption.position(975, 525);
+    inputCaption.size(250, 100);
     
-    brushSlider.position(200,25);
-    brushSlider.size(100,25);
+    brushButton.position(175, 25);
+    brushButton.size(65, 65);
     
-    squareButton.position(400, 0);
-    circleButton.position(450, 0);
-    triangleButton.position(500, 0);
-    squareButton.size(50, 50);
-    circleButton.size(50, 50);
-    triangleButton.size(50, 50);
+    brushSlider.position(355, 55);
+    brushSlider.size(100, 25);
+    //brushCP.position(225, 60);
+    //brushCP.size(100, 15);
+    
+    squareButton.position(505, 25);
+    circleButton.position(575, 25);
+    triangleButton.position(645, 25);
+    squareButton.size(65, 65);
+    circleButton.size(65, 65);
+    triangleButton.size(65, 65);
+    
+    shapeSlider.position(795, 55);
+    shapeSlider.size(100, 25);
+    
+    eraserButton.position(945, 25);
+    eraserButton.size(65, 65);
+    
+    eraserSlider.position(1115, 55);
+    eraserSlider.size(100, 25);
 }
 
 function windowResized() {
