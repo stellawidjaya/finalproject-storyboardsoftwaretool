@@ -19,7 +19,7 @@ function Scribble(p) {
   this.ellipseInc = (Math.PI*2)/this.numEllipseSteps;
 
   this.getOffset = function( minVal, maxVal ) {
-    return this.roughness*(this.sketch.random()*(maxVal-minVal)+minVal);
+    return this.roughness*(/*this.sketch.random()*/(maxVal-minVal)+minVal);
   }
 
   this.buildEllipse = function( cx, cy, rx, ry, offset, overlap ) {

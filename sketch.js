@@ -1,7 +1,10 @@
 
-let numBoards = 5;
+let numBoards = 20;
 let artboards = [];
 let thumbnails = [];
+let thumbnail_up = 0;
+let board_no = 1;
+
 let temp = [];
 let displayKey;
 
@@ -11,6 +14,7 @@ let scrollbar;
 
 let inputTitle;
 let inputCaption;
+let inputNotes;
 
 let brushButton;
 let brushSlider;
@@ -20,6 +24,13 @@ let triangleButton;
 let shapeSlider;
 let eraserButton;
 let eraserSlider;
+
+let clrR;
+let clrG;
+let clrB;
+let value;
+let brushtool;
+let shape;
 
 let s;
 let transparency = 0;
@@ -75,20 +86,11 @@ function setup() {
     }
     
     //create fill-in boxes
-    title = createElement('h3', 'PROJECT TITLE:');
-    title.style('color', 'white');
-    title.style('fontFamily', 'Roboto Mono');
-    title.style('fontSize', '10px');
-    
     inputTitle = createInput();
-    
-    caption = createElement('h3', 'CAPTION:');
-    caption.style('color', 'white');
-    caption.style('fontFamily', 'Roboto Mono');
-    caption.style('fontSize', '10px');
-    
-    inputCaption = createInput();    
-    
+    inputTitle.class('titlebox');
+    inputCaption = createInput(); 
+    inputNotes = createInput();
+        
     //create dom for brushes
     brushSlider = createSlider(1,10,5,1);
     shapeSlider = createSlider(1,10,5,1);
@@ -113,7 +115,7 @@ function setup() {
     circleButton.class('shapebuttons');
     triangleButton.class('shapebuttons');
     eraserButton.class('shapebuttons');
-      
+          
     repositionAll();
     
     displayKey = temp[0];
@@ -122,26 +124,39 @@ function setup() {
     scrollbar = new Scrollbar(width-30, 0, 10, height);
   
     s = new Scribble();
+    
+    clrR = 50;
+    clrG = 50;
+    clrB = 50;
+    brushtool = true;
 }
 
 function activateBrush() {
-    
+    clrR = 50;
+    clrG = 50;
+    clrB = 50;
+    value = brushSlider.value();
+    brushtool = true;
 }
 
 function shapeSquare() {
-    transparency = 255;
+    shape = sq;
 }
 
 function shapeCircle() {
-    transparency = 0;
+    shape = ci;
 }
 
 function shapeTriangle() {
-    
+    shape = tr;
 }
 
 function activateEraser() {
-    
+    clrR = 255;
+    clrG = 255;
+    clrB = 255;
+    value = eraserSlider.value();
+    brushtool = false;
 }
 
 function startPath() {
@@ -180,14 +195,23 @@ function draw() {
     //draw drawing tools
     drawTools();
     
-    //stroke(2.5);
-    line();
+    //text area
+    noStroke();
+    fill(255);
+    textSize(10);
+    textAlign(LEFT);
+    text('PROJECT TITLE:',975,165);
+    //text('BOARD: '+'of 20',975,235);
+    text('CAPTION:',975,275);
+    text('NOTES:',975,450);
     
+    //title.position(975, 145);
+
     //draw artboards+thumbnails    
     for (let i=0; i<numBoards; i++) {
         artboards[i].display();
         
-        thumbnails[i].change_y(25+(75*i));
+        thumbnails[i].change_y(25+(75*i) - thumbnail_up);
         thumbnails[i].display();
         thumbnails[i].mouseControl(i);
         thumbnails[i].set_html(temp[i]);
@@ -196,8 +220,12 @@ function draw() {
         textFont('Roboto Mono');
         textSize(8);
         textAlign(CENTER, CENTER);
-        text(i+1, width-165, 55+(75*i));  
+        text(i+1, width-165, 55+(75*i) - thumbnail_up);      
     }
+
+    let bottomScroll = map(scrollbar.new_sliderY, 0, height - 500, 0, 100);
+    print(bottomScroll);
+    thumbnail_up = map(bottomScroll, 0, 100, 0, 1550 - height);
     
     //displayKey = thumbnails[0].get_html();
     
@@ -217,24 +245,31 @@ function draw() {
     //scribbles
     push();
     //frameRate(10);
-    strokeWeight(1);
-    stroke(50,50,50,transparency);
+    strokeWeight(5);
+    stroke(50,50,50);
     s.scribbleRect(300, 300, 50, 50);
     pop();
     
-    //draw brushstroke  
-    var value = brushSlider.value();
-    //var clr = brushCP.color();
+    //draw brushstroke      
+    if (brushtool) {
+        value = brushSlider.value();
+    } else {
+        value = eraserSlider.value();
+    }
     
     if (mouseIsPressed) {
         var point = {
+            
             x: mouseX,
             y: mouseY,
             stroke: value,
-            //tint: clr,
+            r: clrR,
+            g: clrG,
+            b: clrB,
         }
         
-        if (mouseX >= 100 && mouseX <= 682 && mouseY >= height/2-180 && mouseY <= height/2+180) {
+        if (mouseX >= 150 && mouseX <= 150+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            
             currentPath.push(point);
         }
     }
@@ -243,19 +278,17 @@ function draw() {
     for (let i=0; i<drawing.length; i++) {
         var path = drawing[i];
         
-        //strokeWeight(value);
         noFill();
-        stroke(50);
+        stroke(0, 255, 100);
         beginShape();
         for (let j=0; j<path.length; j++) {
             strokeWeight(path[j].stroke);
-            //stroke(path[j].tint);
+            stroke(path[j].r, path[j].g, path[j].b);
             vertex(path[j].x, path[j].y);
         }
         endShape();    
     }
     pop();
-    
 }
 
 class Board {
@@ -461,7 +494,7 @@ function saveDrawing(key) {
         drawing: drawing,
     }
     
-    ref.child(key).update({'drawing': drawing})
+    //ref.child(key).update({'drawing': drawing})
     
     //var updates = {};
     //updates['/drawing/' + key] = data;
@@ -528,30 +561,18 @@ function showDrawing(key) {
     }
 }
 
-/*function mouseDragged() {
-    let value = brushSlider.value();
-    
-    strokeWeight(value);
-    stroke(50,50,50);
-    line(pmouseX, pmouseY, mouseX, mouseY);
-}*/
-
 function repositionAll() {
-    title.position(975, 145);
-    inputTitle.position(975, 170);
-    inputTitle.size(250, 25);
-    
-    caption.position(975, 500);
-    inputCaption.position(975, 525);
-    inputCaption.size(250, 100);
+    inputTitle.position(975, 172.5);
+    inputTitle.size(265, 30);
+    inputCaption.position(975, 282.5);
+    inputCaption.size(265, 150);
+    inputNotes.position(975, 525);
+    inputNotes.size(265, 100);
     
     brushButton.position(175, 25);
     brushButton.size(65, 65);
-    
     brushSlider.position(355, 55);
     brushSlider.size(100, 25);
-    //brushCP.position(225, 60);
-    //brushCP.size(100, 15);
     
     squareButton.position(505, 25);
     circleButton.position(575, 25);
@@ -559,13 +580,11 @@ function repositionAll() {
     squareButton.size(65, 65);
     circleButton.size(65, 65);
     triangleButton.size(65, 65);
-    
     shapeSlider.position(795, 55);
     shapeSlider.size(100, 25);
     
     eraserButton.position(945, 25);
     eraserButton.size(65, 65);
-    
     eraserSlider.position(1115, 55);
     eraserSlider.size(100, 25);
 }

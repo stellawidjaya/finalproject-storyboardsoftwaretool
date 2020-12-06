@@ -2,8 +2,21 @@ html, body {
   margin: 0;
   padding: 0;
 }
+
 canvas {
   display: block;
+}
+
+input {
+    border: none;
+    background-color: rgb(112,36,31);
+    color: white;
+    font-size: 10px;
+    font-family: Roboto Mono;
+}
+
+input:focus {
+    background-color: red;
 }
 
 .shapebuttons {
@@ -17,3 +30,10 @@ canvas {
 .shapebuttons:hover {
     opacity: 0.5;
 }
+
+.titlebox {
+    font-size: 25px;
+    font-weight: BOLD;   
+}
+
+
