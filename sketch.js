@@ -1,9 +1,9 @@
-
 let numBoards = 20;
 let artboards = [];
 let thumbnails = [];
+let saved_thumbnails = [];
 let thumbnail_up = 0;
-let board_no = 1;
+let board_no = 0;
 
 let temp = [];
 let displayKey;
@@ -13,8 +13,9 @@ let init = true;
 let scrollbar;
 
 let inputTitle;
-let inputCaption;
-let inputNotes;
+let inputName;
+let caption;
+let notes;
 
 let brushButton;
 let brushSlider;
@@ -24,21 +25,28 @@ let triangleButton;
 let shapeSlider;
 let eraserButton;
 let eraserSlider;
+let playButton;
 
 let clrR;
 let clrG;
 let clrB;
 let value;
 let brushtool;
-let shape;
+let erasertool;
+let shapetool;
+let shapeSwitch = true;
 
 let s;
-let transparency = 0;
+//let transparency = 0;
 let ind_red = 0;
 
 let drawing = [];
 let currentPath = [];
-let isDrawing;
+let currentShape = [];
+let isDrawing = false;
+let drawing_temp = [];
+let saveBoard;
+let exist = false;
 
 let save;
 var database;
@@ -49,8 +57,8 @@ function setup() {
     canvas.parent('canvascontainer');
     canvas.mouseReleased(endPath);
     
-    var saveButton = select('#saveButton');
-    saveButton.mousePressed(saveDrawing2);
+    //var saveButton = select('#saveButton');
+    //saveButton.mousePressed(saveDrawing2);
   
     //start firebase
     var firebaseConfig = {
@@ -68,10 +76,10 @@ function setup() {
     firebase.initializeApp(firebaseConfig);
     firebase.analytics();
     database = firebase.database();
-    console.log(database);
+    //console.log(database);
     var ref = database.ref('drawings');
     ref.on('value', gotData, errorData);
-    console.log(firebase);
+    //console.log(firebase);
   
     //let drawings = database.val();
     /*console.log(drawings);
@@ -83,13 +91,23 @@ function setup() {
     for (let i=0; i<numBoards; i++) {
         artboards[i] = new Board();
         thumbnails[i] = new Thumbnail();
+        saved_thumbnails[i] = new Saved_thumbnail();
+        
+        var dr = [];
+        drawing_temp.push(dr);
     }
     
     //create fill-in boxes
     inputTitle = createInput();
     inputTitle.class('titlebox');
-    inputCaption = createInput(); 
-    inputNotes = createInput();
+    inputName = createInput();
+    inputName.class('namebox');
+    caption = createElement('textarea');
+    caption.attribute("rows","5");
+    caption.attribute("cols","40");
+    notes = createElement('textarea');
+    notes.attribute("rows","5");
+    notes.attribute("cols","40");
         
     //create dom for brushes
     brushSlider = createSlider(1,10,5,1);
@@ -103,18 +121,21 @@ function setup() {
     circleButton = createButton('DRAW CIRCLE');
     triangleButton = createButton('DRAW TRIANGLE');
     eraserButton = createButton('ACTIVATE ERASER');
+    playButton = createButton('PLAY BOARDS');
     
     brushButton.mousePressed(activateBrush);
     squareButton.mousePressed(shapeSquare);
     circleButton.mousePressed(shapeCircle);
     triangleButton.mousePressed(shapeTriangle);
     eraserButton.mousePressed(activateEraser);
+    playButton.mousePressed(playBoards);
     
     brushButton.class('shapebuttons');
     squareButton.class('shapebuttons');
     circleButton.class('shapebuttons');
     triangleButton.class('shapebuttons');
     eraserButton.class('shapebuttons');
+    playButton.class('shapebuttons');
           
     repositionAll();
     
@@ -137,18 +158,24 @@ function activateBrush() {
     clrB = 50;
     value = brushSlider.value();
     brushtool = true;
+    erasertool = false;
+    shapetool = false;
 }
 
 function shapeSquare() {
-    shape = sq;
+    //shape = sq;
+    value = shapeSlider.value();
+    brushtool = false;
+    erasertool = false;
+    shapetool = true;
 }
 
 function shapeCircle() {
-    shape = ci;
+    //shape = ci;
 }
 
 function shapeTriangle() {
-    shape = tr;
+    //shape = tr;
 }
 
 function activateEraser() {
@@ -156,17 +183,40 @@ function activateEraser() {
     clrG = 255;
     clrB = 255;
     value = eraserSlider.value();
+    shapetool = false;
+    erasertool = true;
     brushtool = false;
+}
+
+function playBoards() {
+    
 }
 
 function startPath() {
     isDrawing = true;
     currentPath = [];
+    //currentShape = [];
     drawing.push(currentPath);
+    //drawing.push(currentShape);
 }
 
 function endPath() {
     isDrawing = false;
+    shapeSwitch = true;
+    
+    drawing_temp[board_no] = drawing;
+    
+    //let img;
+
+    //CanvasRenderingContext2D.getImageData(150,height/2+25-240,776,480);
+    //CanvasRenderingContext2D.putImageData(img);
+    
+    saveBoard = get(150,height/2+25-240,776,480);
+    //exist = true;
+    //saveBoard.save(img);
+    
+    saved_thumbnails[board_no].change_exist();
+    saved_thumbnails[board_no].save_img(saveBoard);    
 }
 
 function draw() {  
@@ -201,9 +251,10 @@ function draw() {
     textSize(10);
     textAlign(LEFT);
     text('PROJECT TITLE:',975,165);
+    text('SKETCHED BY:',975,225);
     //text('BOARD: '+'of 20',975,235);
     text('CAPTION:',975,275);
-    text('NOTES:',975,450);
+    text('NOTES:',975,455);
     
     //title.position(975, 145);
 
@@ -211,20 +262,26 @@ function draw() {
     for (let i=0; i<numBoards; i++) {
         artboards[i].display();
         
-        thumbnails[i].change_y(25+(75*i) - thumbnail_up);
+        thumbnails[i].change_y(25+(75*i)-thumbnail_up);
         thumbnails[i].display();
         thumbnails[i].mouseControl(i);
         thumbnails[i].set_html(temp[i]);
         
+        noStroke();
         fill(255);
         textFont('Roboto Mono');
         textSize(8);
         textAlign(CENTER, CENTER);
-        text(i+1, width-165, 55+(75*i) - thumbnail_up);      
+        text(i+1, width-165, 55+(75*i)-thumbnail_up); 
+        
+        saved_thumbnails[i].change_y(25+(75*i)-thumbnail_up);
+        saved_thumbnails[i].display();
+
+        
     }
 
     let bottomScroll = map(scrollbar.new_sliderY, 0, height - 500, 0, 100);
-    print(bottomScroll);
+    //print(bottomScroll);
     thumbnail_up = map(bottomScroll, 0, 100, 0, 1550 - height);
     
     //displayKey = thumbnails[0].get_html();
@@ -232,11 +289,11 @@ function draw() {
     //save drawing every second
     let time = 0;
     
-    /*if (millis() >= 2000+time) {
+    if (millis() >= 2000+time) {
         saveDrawing(displayKey);
         time = millis();
         console.log(displayKey);
-    }*/
+    }
     
     //draw scrollbar
     scrollbar.update();
@@ -253,43 +310,88 @@ function draw() {
     //draw brushstroke      
     if (brushtool) {
         value = brushSlider.value();
-    } else {
+    } else if (erasertool) {
         value = eraserSlider.value();
+    } else if (shapetool) {
+        value = shapeSlider.value();
     }
     
-    if (mouseIsPressed) {
-        var point = {
-            
-            x: mouseX,
-            y: mouseY,
-            stroke: value,
-            r: clrR,
-            g: clrG,
-            b: clrB,
-        }
-        
-        if (mouseX >= 150 && mouseX <= 150+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
-            
+    if (isDrawing && mouseX >= 150 && mouseX <= 150+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+        if (brushtool || erasertool) {
+            var point = {
+                x: mouseX,
+                y: mouseY,
+                stroke: value,
+                r: clrR,
+                g: clrG,
+                b: clrB,
+                type: 'point',
+            }
             currentPath.push(point);
         }
+        /*else if (shapetool && shapeSwitch){
+            var rectangle = {
+                x: mouseX,
+                y: mouseY,
+                stroke: value,
+                width: 0,
+                height: 0,
+                type: 'rectangle',
+            }
+            shapeSwitch = false;
+            currentShape.push(rectangle);
+        }*/
     }
     
-    push();
     for (let i=0; i<drawing.length; i++) {
         var path = drawing[i];
         
         noFill();
-        stroke(0, 255, 100);
         beginShape();
         for (let j=0; j<path.length; j++) {
-            strokeWeight(path[j].stroke);
-            stroke(path[j].r, path[j].g, path[j].b);
-            vertex(path[j].x, path[j].y);
+            if (path[j].type == 'point') {
+                strokeWeight(path[j].stroke);
+                stroke(path[j].r, path[j].g, path[j].b);
+                //scale(0.5);
+                vertex(path[j].x, path[j].y);
+            }
         }
-        endShape();    
+        endShape();
     }
-    pop();
-}
+    
+    /*for (let i=0; i<drawing_temp.length; i++) {
+        var d_t = drawing_temp[i];
+        
+        for(let j=0; j<d_t.length; j++){
+            var path_temp = d_t[j];
+            
+            noFill();
+            beginShape();
+            for (let k=0; k<path_temp.length; k++) {
+                if (path_temp[k].type == 'point') {
+                    strokeWeight(path_temp[k].stroke);
+                    stroke(path_temp[k].r, path_temp[k].g, path_temp[k].b);
+                    vertex(path_temp[k].x+100, path_temp[k].y-100);
+                }
+            }
+            endShape();
+        }
+    }*/  
+
+} 
+    
+    /*for (let i=0; i<drawing.length; i++) {
+        var shape1 = drawing[i];
+        
+        noFill();
+        for (let j=0; j<shape1.length; j++) {
+            if(shape1[j].type == 'rectangle'){
+                strokeWeight(shape1[j].stroke);
+                stroke(50);
+                s.scribbleRect(shape1[j].x, shape1[j].y, mouseX - shape1[j].x, mouseY - shape1[j].y);
+            }
+        }
+    }*/
 
 class Board {
     constructor() {
@@ -316,17 +418,17 @@ class Thumbnail {
         this.html;
     }
     
-    change_y(y){
+    change_y(y) {
         this.y = y;
     }
     
-    change_trans(trans){
+    change_trans(trans) {
         this.transparency = trans;
     }
         
     display() {
-        strokeWeight(2.5);
-        stroke(255,0,0, this.transparency);
+        strokeWeight(15);
+        stroke(50,50,50, this.transparency);
         fill(255);
         //rectMode(CENTER);
         rect(this.x, this.y, this.width, this.height, 2.5, 2.5, 2.5, 2.5);
@@ -341,6 +443,7 @@ class Thumbnail {
             this.transparency = 255;
             //console.log('1');
             displayKey = this.html;
+            board_no = i;
         }
     }
     
@@ -350,6 +453,34 @@ class Thumbnail {
     
     get_html() {
         return this.html;
+    }
+}
+
+class Saved_thumbnail {
+    constructor() {
+        this.x = width-150;
+        this.y = 25;
+        this.img;
+        this.exist = false;
+    }
+    
+    change_y(y) {
+        this.y = y;
+    }
+    
+    save_img(img) {
+        this.img = img;
+    }
+    
+    change_exist() {
+        this.exist = true;
+    }
+    
+    display() {
+        if(this.exist) { 
+            image(this.img, width-150, this.y);
+            this.img.resize(97,60);
+        }
     }
 }
 
@@ -494,7 +625,7 @@ function saveDrawing(key) {
         drawing: drawing,
     }
     
-    //ref.child(key).update({'drawing': drawing})
+    ref.child(key).update({'drawing': drawing})
     
     //var updates = {};
     //updates['/drawing/' + key] = data;
@@ -519,18 +650,18 @@ function saveDrawing2() {
 
 function gotData(data) {
     let elts = selectAll('.listing');
-    for (let i=0; i < elts.length; i++) {
+    for (let i=0; i<elts.length; i++) {
         elts[i].remove();
     }
     
     let drawings = data.val();
     //console.log(drawings);
     let keys = Object.keys(drawings);
-    for (let i=0; i < keys.length; i++) {
+    for (let i=0; i<keys.length; i++) {
         var key = keys[i];
         append(temp, key);
-        var li = createElement('li', '');
-        li.class('listing');
+        //var li = createElement('li', '');
+        //li.class('listing');
         //var ahref = createA('#', key);
         //ahref.mousePressed(showDrawing);
         //ahref.parent(li);
@@ -564,10 +695,12 @@ function showDrawing(key) {
 function repositionAll() {
     inputTitle.position(975, 172.5);
     inputTitle.size(265, 30);
-    inputCaption.position(975, 282.5);
-    inputCaption.size(265, 150);
-    inputNotes.position(975, 525);
-    inputNotes.size(265, 100);
+    inputName.position(975, 232.5);
+    inputName.size(265, 20);
+    caption.position(975, 282.5);
+    caption.size(265,150);
+    notes.position(975, 462.5);
+    notes.size(265, 100);
     
     brushButton.position(175, 25);
     brushButton.size(65, 65);
@@ -587,6 +720,9 @@ function repositionAll() {
     eraserButton.size(65, 65);
     eraserSlider.position(1115, 55);
     eraserSlider.size(100, 25);
+    
+    playButton.position(975, 592.5);
+    playButton.size(270, 50);
 }
 
 function windowResized() {
