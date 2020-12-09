@@ -14,8 +14,16 @@ let scrollbar;
 
 let inputTitle;
 let inputName;
-let caption;
-let notes;
+let selectBox;
+let textbox;
+let inputText;
+let duration;
+let inputDuration;
+
+let title_content = "";
+let name_content = "";
+let caption_content = "";
+let notes_content = "";
 
 let brushButton;
 let brushSlider;
@@ -25,7 +33,12 @@ let triangleButton;
 let shapeSlider;
 let eraserButton;
 let eraserSlider;
+let submitButton;
 let playButton;
+let clearButton;
+
+let countTime;
+let interval;
 
 let clrR;
 let clrG;
@@ -37,7 +50,6 @@ let shapetool;
 let shapeSwitch = true;
 
 let s;
-//let transparency = 0;
 let ind_red = 0;
 
 let drawing = [];
@@ -49,6 +61,9 @@ let saveBoard;
 let exist = false;
 
 let save;
+let saving = true;
+let duration_content = 2;
+let text_content = 'Select which box you want to input... Input your text here...              Then click the submit button...';
 var database;
 
 function setup() {
@@ -57,8 +72,8 @@ function setup() {
     canvas.parent('canvascontainer');
     canvas.mouseReleased(endPath);
     
-    //var saveButton = select('#saveButton');
-    //saveButton.mousePressed(saveDrawing2);
+    var saveButton = select('#saveButton');
+    saveButton.mousePressed(saveDrawing2);
   
     //start firebase
     var firebaseConfig = {
@@ -76,17 +91,9 @@ function setup() {
     firebase.initializeApp(firebaseConfig);
     firebase.analytics();
     database = firebase.database();
-    //console.log(database);
     var ref = database.ref('drawings');
     ref.on('value', gotData, errorData);
-    //console.log(firebase);
-  
-    //let drawings = database.val();
-    /*console.log(drawings);
-    let keys = Object.keys(drawings);
-    for (let i=0; i < keys.length; i++) {
-        var key = keys[i];*/
-    
+
     //create artboards+thumbnails
     for (let i=0; i<numBoards; i++) {
         artboards[i] = new Board();
@@ -98,22 +105,25 @@ function setup() {
     }
     
     //create fill-in boxes
-    inputTitle = createInput();
-    inputTitle.class('titlebox');
-    inputName = createInput();
-    inputName.class('namebox');
-    caption = createElement('textarea');
-    caption.attribute("rows","5");
-    caption.attribute("cols","40");
-    notes = createElement('textarea');
-    notes.attribute("rows","5");
-    notes.attribute("cols","40");
+    textbox = createElement('textarea', text_content);
+    textbox.attribute("rows","5");
+    textbox.attribute("cols","40");
+    inputDuration = createInput(duration_content);
+    inputDuration.class('namebox');
+    inputDuration.input(updateDuration);
+    
+    selectBox = createSelect();
+    selectBox.option('SELECT BOX TO INPUT');
+    selectBox.option('TITLE');
+    selectBox.option('NAME');
+    selectBox.option('CAPTION');
+    selectBox.option('NOTES');
+    selectBox.class('dropdown');
         
     //create dom for brushes
     brushSlider = createSlider(1,10,5,1);
     shapeSlider = createSlider(1,10,5,1);
     eraserSlider = createSlider(2.5,50,25,2.5);
-    //brushCP = createColorPicker('rgb(50,50,50)');
     
     //create buttons for shapes
     brushButton = createButton('ACTIVATE BRUSH');
@@ -121,21 +131,27 @@ function setup() {
     circleButton = createButton('DRAW CIRCLE');
     triangleButton = createButton('DRAW TRIANGLE');
     eraserButton = createButton('ACTIVATE ERASER');
+    submitButton = createButton('S U B M I T');
     playButton = createButton('PLAY BOARDS');
+    clearButton = createButton('CLEAR DRAWING');
     
     brushButton.mousePressed(activateBrush);
     squareButton.mousePressed(shapeSquare);
     circleButton.mousePressed(shapeCircle);
     triangleButton.mousePressed(shapeTriangle);
     eraserButton.mousePressed(activateEraser);
+    submitButton.mousePressed(submitText);
     playButton.mousePressed(playBoards);
+    clearButton.mousePressed(clearDrawing);
     
     brushButton.class('shapebuttons');
     squareButton.class('shapebuttons');
     circleButton.class('shapebuttons');
     triangleButton.class('shapebuttons');
     eraserButton.class('shapebuttons');
+    submitButton.class('shapebuttons');
     playButton.class('shapebuttons');
+    clearButton.class('shapebuttons');
           
     repositionAll();
     
@@ -144,7 +160,7 @@ function setup() {
     //create scrollbar
     scrollbar = new Scrollbar(width-30, 0, 10, height);
   
-    s = new Scribble();
+    //s = new Scribble();
     
     clrR = 50;
     clrG = 50;
@@ -189,7 +205,40 @@ function activateEraser() {
 }
 
 function playBoards() {
+    countTime = 0;
+    interval = setInterval(timeIt, duration_content*1000);
+    saving = false;
+}
+
+function timeIt() {
+    showDrawing(thumbnails[countTime % 20].html);
+    countTime++;
+}
+
+function stopPlay() {
+    clearInterval(interval);
+}
+
+function submitText() {
+    let value = selectBox.value();
     
+    if (value == 'TITLE') {
+        title_content = textbox.value();
+        thumbnails[0].save_title(title_content);
+    } else if (value == 'NAME') {
+        name_content = textbox.value();
+        thumbnails[0].save_name(name_content);
+    } else if (value == 'CAPTION') {
+        caption_content = textbox.value();
+        thumbnails[board_no].save_caption(caption_content);
+    } else if (value == 'NOTES') {
+        notes_content = textbox.value();
+        thumbnails[board_no].save_notes(notes_content);
+    }
+}
+
+function updateDuration() {
+    duration_content = inputDuration.value();
 }
 
 function startPath() {
@@ -205,16 +254,8 @@ function endPath() {
     shapeSwitch = true;
     
     drawing_temp[board_no] = drawing;
-    
-    //let img;
-
-    //CanvasRenderingContext2D.getImageData(150,height/2+25-240,776,480);
-    //CanvasRenderingContext2D.putImageData(img);
-    
+        
     saveBoard = get(150,height/2+25-240,776,480);
-    //exist = true;
-    //saveBoard.save(img);
-    
     saved_thumbnails[board_no].change_exist();
     saved_thumbnails[board_no].save_img(saveBoard);    
 }
@@ -234,7 +275,6 @@ function draw() {
     rect(width-200, 0, 200, height);
     
     fill(255);
-    //stroke(brushSlider.value());
     rect(30, 40, 20, 12.5, 0, 5, 5, 0);
     rect(30, 55, 20, 12.5, 0, 5, 5, 0);
     
@@ -252,12 +292,31 @@ function draw() {
     textAlign(LEFT);
     text('PROJECT TITLE:',975,165);
     text('SKETCHED BY:',975,225);
-    //text('BOARD: '+'of 20',975,235);
     text('CAPTION:',975,275);
-    text('NOTES:',975,455);
+    text('NOTES:',975,377.5);
+    text('(TEXT BOX)',975,480);
+    text('DURATION:',975,592.5);
+    textSize(7.5);
+    text('(PER BOARD)',975,602.5);
+    text('SECOND(S)',975,640);
     
-    //title.position(975, 145);
-
+    fill(112,36,31);
+    rect(975, 172.5, 270, 32.5);
+    rect(975, 232.5, 270, 22.5);
+    rect(975, 282.5, 270, 75);
+    rect(975, 385, 270, 75);
+    
+    fill(255);
+    textStyle(BOLD);
+    textSize(22.5);
+    text(title_content,977.5,185);
+    textSize(15);
+    text(name_content,977.5,245);
+    textStyle(NORMAL);
+    textSize(10);
+    text(caption_content,977.5,290);
+    text(notes_content,977.5,390);
+    
     //draw artboards+thumbnails    
     for (let i=0; i<numBoards; i++) {
         artboards[i].display();
@@ -275,17 +334,12 @@ function draw() {
         text(i+1, width-165, 55+(75*i)-thumbnail_up); 
         
         saved_thumbnails[i].change_y(25+(75*i)-thumbnail_up);
-        saved_thumbnails[i].display();
-
-        
+        saved_thumbnails[i].display();   
     }
 
     let bottomScroll = map(scrollbar.new_sliderY, 0, height - 500, 0, 100);
-    //print(bottomScroll);
     thumbnail_up = map(bottomScroll, 0, 100, 0, 1550 - height);
-    
-    //displayKey = thumbnails[0].get_html();
-    
+        
     //save drawing every second
     let time = 0;
     
@@ -300,12 +354,12 @@ function draw() {
     scrollbar.display(); 
     
     //scribbles
-    push();
+    /*push();
     //frameRate(10);
     strokeWeight(5);
     stroke(50,50,50);
     s.scribbleRect(300, 300, 50, 50);
-    pop();
+    pop();*/
     
     //draw brushstroke      
     if (brushtool) {
@@ -416,6 +470,10 @@ class Thumbnail {
         this.height = 60;
         this.transparency = 0;
         this.html;
+        this.title = "";
+        this.name = "";
+        this.caption = "";
+        this.notes = "";
     }
     
     change_y(y) {
@@ -425,25 +483,29 @@ class Thumbnail {
     change_trans(trans) {
         this.transparency = trans;
     }
-        
+    
     display() {
         strokeWeight(15);
         stroke(50,50,50, this.transparency);
         fill(255);
-        //rectMode(CENTER);
         rect(this.x, this.y, this.width, this.height, 2.5, 2.5, 2.5, 2.5);
     }
     
     mouseControl(i) {
         if (mouseX >= this.x && mouseX <= this.x+this.width && mouseY >= this.y && mouseY <= this.y+this.height && mouseIsPressed) {
+            saving = false;
             thumbnails[ind_red].change_trans(0);
             ind_red = i;
-            showDrawing(this.html);
-            //numBoards++;
             this.transparency = 255;
-            //console.log('1');
             displayKey = this.html;
             board_no = i;
+            showDrawing(this.html);
+            print('show board no:' + board_no);
+            print('this.caption: '+ this.caption);
+            stopPlay();
+            caption_content = this.caption;
+            notes_content = this.notes;
+            saving = true;
         }
     }
     
@@ -453,6 +515,22 @@ class Thumbnail {
     
     get_html() {
         return this.html;
+    }
+    
+    save_title(title) {
+        this.title = title;
+    }
+    
+    save_name(name) {
+        this.name = name;
+    }
+    
+    save_caption(caption) {
+        this.caption = caption;
+    }
+    
+    save_notes(notes) {
+        this.notes = notes;
     }
 }
 
@@ -500,26 +578,21 @@ class Scrollbar {
     
     update() {
         if (this.beyondSlider()) {
-            //log.console('test');
             this.beyond = true;
         } else {
             this.beyond = false;
         }
         if (mouseIsPressed && this.beyond) {
-            //console.log('true');
             this.locked = true;
         }
         if (!mouseIsPressed) {
-            //console.log('false');
             this.locked = false;
         }
         if (this.locked) {
             this.new_sliderY = this.constrain(mouseY, this.sliderMin, this.sliderMax);
-            //console.log(this.new_sliderY);
         }
         if (abs(this.new_sliderY - this.sliderY) > 1) {
             this.sliderY = this.sliderY + (this.new_sliderY - this.sliderY)/15;
-            //console.log(this.sliderY);
         }
     }
     
@@ -619,32 +692,39 @@ function drawTools() {
 }
 
 function saveDrawing(key) {
-    let ref = database.ref('drawings');
-    let data = {
-        name: "stella",
-        drawing: drawing,
+    if (saving) {
+        let ref = database.ref('drawings');
+        let data = {
+            drawing: drawing,
+            title: title_content,
+            name: name_content,
+            caption: caption_content,
+            notes: notes_content,
+        }
+
+        ref.child(key).update({'drawing': drawing});
+        ref.child(key).update({'title': title_content});
+        ref.child(key).update({'name': name_content});
+        ref.child(key).update({'caption': caption_content});
+        ref.child(key).update({'notes': notes_content});
     }
-    
-    ref.child(key).update({'drawing': drawing})
-    
-    //var updates = {};
-    //updates['/drawing/' + key] = data;
-    //ref.update(updates);
-    //ref.push(data);
 }
 
 function saveDrawing2() {
     let ref = database.ref('drawings');
     let data = {
-        name: "stella",
         drawing: drawing,
+        title: title_content,
+        name: name_content,
+        caption: caption_content,
+        notes: notes_content,
     }
     
     //ref.child(key).update({'drawing': drawing})
     
-    var updates = {};
-    updates['/drawing/' + key] = data;
-    ref.update(updates);
+    //var updates = {};
+    //updates['/drawing/' + key] = data;
+    //ref.update(updates);
     ref.push(data);
 }
 
@@ -655,17 +735,10 @@ function gotData(data) {
     }
     
     let drawings = data.val();
-    //console.log(drawings);
     let keys = Object.keys(drawings);
     for (let i=0; i<keys.length; i++) {
         var key = keys[i];
         append(temp, key);
-        //var li = createElement('li', '');
-        //li.class('listing');
-        //var ahref = createA('#', key);
-        //ahref.mousePressed(showDrawing);
-        //ahref.parent(li);
-        //li.parent('drawinglist');
     }
     
     if(init) {
@@ -680,27 +753,51 @@ function errorData(error) {
 }
 
 function showDrawing(key) {
-    //var key = this.html();
-    //print(key);
     var ref = database.ref('drawings/'+key); 
     ref.once('value', oneDrawing, errorData);
 
     function oneDrawing(data) {
         var drawings = data.val();
         drawing = drawings.drawing;
-        //console.log(drawing);
+        title_content = drawings.title;
+        name_content = drawings.name;
+        caption_content = drawings.caption;
+        notes_content = drawings.notes;
+        print('loaded title : ' + title_content);
+        print('loaded caption : ' + caption_content);
+        thumbnails[board_no].save_caption(drawings.caption);
+        thumbnails[board_no].save_name(drawings.name);
+        thumbnails[board_no].save_notes(drawings.notes);
+        thumbnails[board_no].save_title(drawings.title);
     }
 }
 
+function clearDrawing() {
+    saving = false;
+    drawing = [];
+    var point = {
+                x: 405,
+                y: 259,
+                stroke: 5,
+                r: 255,
+                g: 255,
+                b: 255,
+                type: 'point',
+            }
+    currentPath.push(point);
+    drawing.push(currentPath);
+    saving = true;
+    
+    saveBoard = get(150,height/2+25-240,776,480);
+    saved_thumbnails[board_no].change_exist();
+    saved_thumbnails[board_no].save_img(saveBoard); 
+}
+
 function repositionAll() {
-    inputTitle.position(975, 172.5);
-    inputTitle.size(265, 30);
-    inputName.position(975, 232.5);
-    inputName.size(265, 20);
-    caption.position(975, 282.5);
-    caption.size(265,150);
-    notes.position(975, 462.5);
-    notes.size(265, 100);
+    textbox.position(975, 487.5);
+    textbox.size(244, 77.5);
+    inputDuration.position(975, 610);
+    inputDuration.size(55, 20);
     
     brushButton.position(175, 25);
     brushButton.size(65, 65);
@@ -721,8 +818,14 @@ function repositionAll() {
     eraserSlider.position(1115, 55);
     eraserSlider.size(100, 25);
     
-    playButton.position(975, 592.5);
-    playButton.size(270, 50);
+    selectBox.position(1100, 472.5);
+    selectBox.size(125, 16);
+    submitButton.position(1225, 487.5);
+    submitButton.size(20, 83.5);
+    playButton.position(1050, 585);
+    playButton.size(90, 57.5);
+    clearButton.position(1155, 585);
+    clearButton.size(90, 57.5);
 }
 
 function windowResized() {

@@ -19,8 +19,12 @@ input:focus {
     background-color: red;
 }
 
+input:hover {
+    background-color: red;
+}
+
 textarea {
-    border: none;
+    border-color: red;
     background-color: rgb(112,36,31);
     color: white;
     font-size: 10px;
@@ -28,6 +32,10 @@ textarea {
 }
 
 textarea:focus {
+    background-color: red;
+}
+
+textarea:hover {
     background-color: red;
 }
 
@@ -50,7 +58,17 @@ textarea:focus {
 
 .namebox {
     font-size: 15px;
+    font-weight: BOLD;      
+}
+
+.dropdown {
+    border-color: red;
+    background-color: rgb(112,36,31);
+    color: white;
+    font-size: 8.5px;
     font-weight: BOLD;   
+
+    font-family: Roboto Mono;
     
 }
 
