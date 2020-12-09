@@ -309,13 +309,13 @@ function draw() {
     fill(255);
     textStyle(BOLD);
     textSize(22.5);
-    text(title_content,977.5,185);
+    text(title_content,977.5,190);
     textSize(15);
     text(name_content,977.5,245);
     textStyle(NORMAL);
     textSize(10);
     text(caption_content,977.5,290);
-    text(notes_content,977.5,390);
+    text(notes_content,977.5,392.5);
     
     //draw artboards+thumbnails    
     for (let i=0; i<numBoards; i++) {
@@ -336,9 +336,10 @@ function draw() {
         saved_thumbnails[i].change_y(25+(75*i)-thumbnail_up);
         saved_thumbnails[i].display();   
     }
-
-    let bottomScroll = map(scrollbar.new_sliderY, 0, height - 500, 0, 100);
-    thumbnail_up = map(bottomScroll, 0, 100, 0, 1550 - height);
+    
+    //connect scrollbar with thumbnails
+    let bottomScroll = map(scrollbar.new_sliderY, 0, height-500, 0, 100);
+    thumbnail_up = map(bottomScroll, 0, 100, 0, 1550-height);
         
     //save drawing every second
     let time = 0;
