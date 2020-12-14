@@ -9,7 +9,7 @@ canvas {
 
 input {
     border: none;
-    background-color: rgb(112,36,31);
+    background-color: rgb(97,35,35);
     color: white;
     font-size: 10px;
     font-family: Roboto Mono;
@@ -24,8 +24,9 @@ input:hover {
 }
 
 textarea {
-    border-color: red;
-    background-color: rgb(112,36,31);
+    border-color: rgb(50,50,50);
+    background-color: rgb(144,32,32);
+    background-color: rgb(144,32,32);
     color: white;
     font-size: 10px;
     font-family: Roboto Mono;
@@ -51,25 +52,45 @@ textarea:hover {
     opacity: 0.5;
 }
 
+.submitbutton {
+    background-color: rgb(191,29,29);
+    color: white;
+    border: none;
+    font-size: 10px;
+    font-family: Roboto Mono;
+}
+
+.submitbutton:hover {
+    background-color: red;
+}
+
 .titlebox {
+    background-color: rgb(144,32,32);
     font-size: 25px;
     font-weight: BOLD;   
 }
 
 .namebox {
+    background-color: rgb(144,32,32);
+    font-size: 15px;
+    font-weight: BOLD;   
+}
+
+.durationbox {
     font-size: 15px;
     font-weight: BOLD;      
 }
 
 .dropdown {
-    border-color: red;
-    background-color: rgb(112,36,31);
+    border-color: rgb(50,50,50);
+    background-color: rgb(191,29,29);
     color: white;
-    font-size: 8.5px;
-    font-weight: BOLD;   
-
+    font-size: 10px;
     font-family: Roboto Mono;
-    
+}
+
+.dropdown:hover {
+    background-color: red;
 }
 
 

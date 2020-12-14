@@ -5,12 +5,22 @@ let saved_thumbnails = [];
 let thumbnail_up = 0;
 let board_no = 0;
 
+let rect_no = 0;
+let ell_no = 0;
+
 let temp = [];
 let displayKey;
 
 let init = true;
 
 let scrollbar;
+
+let rectTransparency = 255;
+let ellTransparency = 0;
+let screenTransparency = 255;
+let dot1 = 255;
+let dot2 = 255;
+let dot3 = 255;
 
 let inputTitle;
 let inputName;
@@ -36,6 +46,9 @@ let eraserSlider;
 let submitButton;
 let playButton;
 let clearButton;
+let saveButton;
+
+let mouseCursor;
 
 let countTime;
 let interval;
@@ -47,11 +60,15 @@ let value;
 let brushtool;
 let erasertool;
 let shapetool;
+let recttool;
+let elltool;
 let shapeSwitch = true;
+let withinCanvas;
 
 let s;
 let ind_red = 0;
 
+let storage = [];
 let drawing = [];
 let currentPath = [];
 let currentShape = [];
@@ -60,11 +77,15 @@ let drawing_temp = [];
 let saveBoard;
 let exist = false;
 
+let dragX;
+let dragY;
+let releasedX;
+let releasedY;
+
 let save;
 let saving = true;
 let duration_content = 2;
-let text_content = 'Select which box you want to input... Input your text here...              Then click the submit button...';
-var database;
+let text_content = 'Input your text here...'
 
 function setup() {
     canvas = createCanvas(windowWidth, windowHeight);
@@ -72,36 +93,23 @@ function setup() {
     canvas.parent('canvascontainer');
     canvas.mouseReleased(endPath);
     
-    var saveButton = select('#saveButton');
-    saveButton.mousePressed(saveDrawing2);
-  
-    //start firebase
-    var firebaseConfig = {
-    apiKey: "AIzaSyCFRYCFf94YIclONyOKRzeUBFwbh7am4LE",
-    authDomain: "my-storyboard-software.firebaseapp.com",
-    databaseURL: "https://my-storyboard-software.firebaseio.com",
-    projectId: "my-storyboard-software",
-    storageBucket: "my-storyboard-software.appspot.com",
-    messagingSenderId: "625029995907",
-    appId: "1:625029995907:web:e99107e955033c685f2ab6",
-    measurementId: "G-026KHL8HLB"
-    };
+    mouseCursor = cursor('progress');
     
-    // initialize firebase
-    firebase.initializeApp(firebaseConfig);
-    firebase.analytics();
-    database = firebase.database();
-    var ref = database.ref('drawings');
-    ref.on('value', gotData, errorData);
+    for (let i=0; i<numBoards; i++) {
+        storage.push({
+            drawings: [],
+            title: title_content,
+            name: name_content,
+            caption: caption_content,
+            notes: notes_content,
+        })
+    }
 
     //create artboards+thumbnails
     for (let i=0; i<numBoards; i++) {
         artboards[i] = new Board();
         thumbnails[i] = new Thumbnail();
         saved_thumbnails[i] = new Saved_thumbnail();
-        
-        var dr = [];
-        drawing_temp.push(dr);
     }
     
     //create fill-in boxes
@@ -109,13 +117,14 @@ function setup() {
     textbox.attribute("rows","5");
     textbox.attribute("cols","40");
     inputDuration = createInput(duration_content);
-    inputDuration.class('namebox');
+    inputDuration.class('durationbox');
     inputDuration.input(updateDuration);
+    inputTitle = createInput(title_content);
+    inputTitle.class('titlebox');
+    inputName = createInput(name_content);
+    inputName.class('namebox');
     
     selectBox = createSelect();
-    selectBox.option('SELECT BOX TO INPUT');
-    selectBox.option('TITLE');
-    selectBox.option('NAME');
     selectBox.option('CAPTION');
     selectBox.option('NOTES');
     selectBox.class('dropdown');
@@ -125,43 +134,47 @@ function setup() {
     shapeSlider = createSlider(1,10,5,1);
     eraserSlider = createSlider(2.5,50,25,2.5);
     
-    //create buttons for shapes
+    //create buttons
     brushButton = createButton('ACTIVATE BRUSH');
-    squareButton = createButton('DRAW SQUARE');
-    circleButton = createButton('DRAW CIRCLE');
-    triangleButton = createButton('DRAW TRIANGLE');
+    squareButton = createButton('ACTIVATE RECTANGLE');
+    circleButton = createButton('ACTIVATE ELLIPSE');
+    //triangleButton = createButton('DRAW TRIANGLE');
     eraserButton = createButton('ACTIVATE ERASER');
-    submitButton = createButton('S U B M I T');
+    submitButton = createButton('SUBMIT');
     playButton = createButton('PLAY BOARDS');
     clearButton = createButton('CLEAR DRAWING');
+    saveButton = createButton('SAVE SKETCH');
     
     brushButton.mousePressed(activateBrush);
     squareButton.mousePressed(shapeSquare);
     circleButton.mousePressed(shapeCircle);
-    triangleButton.mousePressed(shapeTriangle);
     eraserButton.mousePressed(activateEraser);
     submitButton.mousePressed(submitText);
     playButton.mousePressed(playBoards);
     clearButton.mousePressed(clearDrawing);
+    saveButton.mousePressed(downloadSketch);
     
     brushButton.class('shapebuttons');
     squareButton.class('shapebuttons');
     circleButton.class('shapebuttons');
-    triangleButton.class('shapebuttons');
     eraserButton.class('shapebuttons');
-    submitButton.class('shapebuttons');
+    submitButton.class('submitbutton');
     playButton.class('shapebuttons');
     clearButton.class('shapebuttons');
+    saveButton.class('shapebuttons');
           
-    repositionAll();
+    initialDOM();
     
     displayKey = temp[0];
 
     //create scrollbar
-    scrollbar = new Scrollbar(width-30, 0, 10, height);
-  
-    //s = new Scribble();
+    scrollX = width-20
+    scrollbar = new Scrollbar(scrollX, 0, 10, height);
     
+    //activate scribble
+    s = new Scribble();
+    
+    //initialize brush
     clrR = 50;
     clrG = 50;
     clrB = 50;
@@ -175,23 +188,36 @@ function activateBrush() {
     value = brushSlider.value();
     brushtool = true;
     erasertool = false;
+    recttool = false;
+    elltool = false;
     shapetool = false;
+    //mouseCursor = cursor(circle_img,10,10);
+    
 }
 
 function shapeSquare() {
-    //shape = sq;
     value = shapeSlider.value();
     brushtool = false;
     erasertool = false;
+    recttool = true;
+    elltool = false;
     shapetool = true;
+    rectTransparency = 255;
+    ellTransparency = 0;
+    mouseCursor = cursor(CROSS);
+    
 }
 
 function shapeCircle() {
-    //shape = ci;
-}
-
-function shapeTriangle() {
-    //shape = tr;
+    value = shapeSlider.value();
+    brushtool = false;
+    erasertool = false;
+    recttool = false;
+    elltool = true;
+    shapetool = true;
+    rectTransparency = 0;
+    ellTransparency = 255;
+    mouseCursor = cursor(CROSS);
 }
 
 function activateEraser() {
@@ -199,19 +225,27 @@ function activateEraser() {
     clrG = 255;
     clrB = 255;
     value = eraserSlider.value();
-    shapetool = false;
+    recttool = false;
     erasertool = true;
     brushtool = false;
+    shapetool = false;
 }
 
 function playBoards() {
-    countTime = 0;
-    interval = setInterval(timeIt, duration_content*1000);
-    saving = false;
+    if (!interval) {
+        countTime = 0;
+        interval = setInterval(timeIt, duration_content*1000);
+        playButton.html('STOP BOARDS');
+        saving = false;
+    } else {
+        clearInterval(interval);
+        interval = false;
+        playButton.html('PLAY BOARDS');
+    }
 }
 
 function timeIt() {
-    showDrawing(thumbnails[countTime % 20].html);
+    showDrawing2(countTime % 20);
     countTime++;
 }
 
@@ -244,9 +278,9 @@ function updateDuration() {
 function startPath() {
     isDrawing = true;
     currentPath = [];
-    //currentShape = [];
+    currentShape = [];
     drawing.push(currentPath);
-    //drawing.push(currentShape);
+    drawing.push(currentShape);
 }
 
 function endPath() {
@@ -255,86 +289,30 @@ function endPath() {
     
     drawing_temp[board_no] = drawing;
         
-    saveBoard = get(150,height/2+25-240,776,480);
+    saveBoard = get(width/20*1.75,height/5,776,480);
     saved_thumbnails[board_no].change_exist();
-    saved_thumbnails[board_no].save_img(saveBoard);    
+    saved_thumbnails[board_no].save_img(saveBoard);
+    
+    print(drawing);
+    print(storage);
+}
+
+function downloadSketch() {
+    var sketch = get(width/20*1.75+1,height/5+1,776-3,480-3);
+    sketch.save('sketchboard'+(board_no+1), 'jpg');
 }
 
 function draw() {  
     background(50);
     
-    //draw logo banner
-    noStroke();
-    fill(255,0,0);
-    rect(20, 0, 40, height);
-    
-    fill(255,0,0,100);
-    rect(0, 20, width-200, 75);
-    
-    fill(255,0,0,150);
-    rect(width-200, 0, 200, height);
-    
-    fill(255);
-    rect(30, 40, 20, 12.5, 0, 5, 5, 0);
-    rect(30, 55, 20, 12.5, 0, 5, 5, 0);
-    
-    textSize(7.5);
-    textAlign(CENTER,CENTER);
-    text('BO/RDS',40,75);
-    
-    //draw drawing tools
-    drawTools();
-    
-    //text area
-    noStroke();
-    fill(255);
-    textSize(10);
-    textAlign(LEFT);
-    text('PROJECT TITLE:',975,165);
-    text('SKETCHED BY:',975,225);
-    text('CAPTION:',975,275);
-    text('NOTES:',975,377.5);
-    text('(TEXT BOX)',975,480);
-    text('DURATION:',975,592.5);
-    textSize(7.5);
-    text('(PER BOARD)',975,602.5);
-    text('SECOND(S)',975,640);
-    
-    fill(112,36,31);
-    rect(975, 172.5, 270, 32.5);
-    rect(975, 232.5, 270, 22.5);
-    rect(975, 282.5, 270, 75);
-    rect(975, 385, 270, 75);
-    
-    fill(255);
-    textStyle(BOLD);
-    textSize(22.5);
-    text(title_content,977.5,190);
-    textSize(15);
-    text(name_content,977.5,245);
-    textStyle(NORMAL);
-    textSize(10);
-    text(caption_content,977.5,290);
-    text(notes_content,977.5,392.5);
+    if (millis() >= 4000 && millis() <= 5000) {
+        repositionAll();
+        mouseCursor = cursor(ARROW);
+    }
     
     //draw artboards+thumbnails    
     for (let i=0; i<numBoards; i++) {
-        artboards[i].display();
-        
-        thumbnails[i].change_y(25+(75*i)-thumbnail_up);
-        thumbnails[i].display();
-        thumbnails[i].mouseControl(i);
-        thumbnails[i].set_html(temp[i]);
-        
-        noStroke();
-        fill(255);
-        textFont('Roboto Mono');
-        textSize(8);
-        textAlign(CENTER, CENTER);
-        text(i+1, width-165, 55+(75*i)-thumbnail_up); 
-        
-        saved_thumbnails[i].change_y(25+(75*i)-thumbnail_up);
-        saved_thumbnails[i].display();   
+        artboards[i].display();   
     }
     
     //connect scrollbar with thumbnails
@@ -345,24 +323,11 @@ function draw() {
     let time = 0;
     
     if (millis() >= 2000+time) {
-        saveDrawing(displayKey);
+        saveDrawing();
         time = millis();
-        console.log(displayKey);
-    }
+    } 
     
-    //draw scrollbar
-    scrollbar.update();
-    scrollbar.display(); 
-    
-    //scribbles
-    /*push();
-    //frameRate(10);
-    strokeWeight(5);
-    stroke(50,50,50);
-    s.scribbleRect(300, 300, 50, 50);
-    pop();*/
-    
-    //draw brushstroke      
+    //for drawing tools      
     if (brushtool) {
         value = brushSlider.value();
     } else if (erasertool) {
@@ -371,7 +336,7 @@ function draw() {
         value = shapeSlider.value();
     }
     
-    if (isDrawing && mouseX >= 150 && mouseX <= 150+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+    if (isDrawing && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
         if (brushtool || erasertool) {
             var point = {
                 x: mouseX,
@@ -384,20 +349,37 @@ function draw() {
             }
             currentPath.push(point);
         }
-        /*else if (shapetool && shapeSwitch){
+        else if (shapetool && shapeSwitch && recttool){
             var rectangle = {
                 x: mouseX,
                 y: mouseY,
                 stroke: value,
-                width: 0,
-                height: 0,
+                w: 0,
+                h: 0,
                 type: 'rectangle',
             }
             shapeSwitch = false;
             currentShape.push(rectangle);
-        }*/
+            rect_no = drawing.length-1;
+            withinCanvas = true;
+        }
+        else if (shapetool && elltool && shapeSwitch) {
+            var ellipse = {
+                x: mouseX,
+                y: mouseY,
+                stroke: value,
+                w: 0,
+                h: 0,
+                type: 'ellipse',
+            }
+            shapeSwitch = false;
+            currentShape.push(ellipse);
+            ell_no = drawing.length-1;
+            withinCanvas = true;
+        }
     }
     
+    //draw brushdstroke
     for (let i=0; i<drawing.length; i++) {
         var path = drawing[i];
         
@@ -407,51 +389,161 @@ function draw() {
             if (path[j].type == 'point') {
                 strokeWeight(path[j].stroke);
                 stroke(path[j].r, path[j].g, path[j].b);
-                //scale(0.5);
                 vertex(path[j].x, path[j].y);
             }
         }
         endShape();
     }
     
-    /*for (let i=0; i<drawing_temp.length; i++) {
-        var d_t = drawing_temp[i];
-        
-        for(let j=0; j<d_t.length; j++){
-            var path_temp = d_t[j];
-            
-            noFill();
-            beginShape();
-            for (let k=0; k<path_temp.length; k++) {
-                if (path_temp[k].type == 'point') {
-                    strokeWeight(path_temp[k].stroke);
-                    stroke(path_temp[k].r, path_temp[k].g, path_temp[k].b);
-                    vertex(path_temp[k].x+100, path_temp[k].y-100);
-                }
-            }
-            endShape();
-        }
-    }*/  
-
-} 
-    
-    /*for (let i=0; i<drawing.length; i++) {
-        var shape1 = drawing[i];
+    //draw shapes
+    for (let i=0; i<drawing.length; i++) {
+        var shape = drawing[i];
         
         noFill();
-        for (let j=0; j<shape1.length; j++) {
-            if(shape1[j].type == 'rectangle'){
-                strokeWeight(shape1[j].stroke);
+        for (let j=0; j<shape.length; j++) {
+            if (shape[j].type == 'rectangle'){
+                strokeWeight(shape[j].stroke);
                 stroke(50);
-                s.scribbleRect(shape1[j].x, shape1[j].y, mouseX - shape1[j].x, mouseY - shape1[j].y);
+                s.scribbleRect(shape[j].x-shape[j].w/2, shape[j].y-shape[j].h/2, shape[j].w, shape[j].h);
+            }
+            if (shape[j].type == 'ellipse') {
+                strokeWeight(shape[j].stroke);
+                stroke(50);
+                s.scribbleEllipse(shape[j].x, shape[j].y, shape[j].w*2, shape[j].h*2);
             }
         }
-    }*/
-
+    }
+    
+    //layering
+    noStroke();
+    fill(50);
+    rect(width/20*1.75, 100, -60, height-100);
+    rect(width/20*1.75+776, 100, 40, height-100);
+    rect(width/20*1.75-60, height/2+25-240, 776+120, -40);
+    rect(width/20*1.75-60, height/2+25+240, 776+120, 40);
+    
+    //draw logo banner
+    noStroke();
+    fill(255,0,0);
+    rect(0, 0, 40, height);
+    
+    fill(255,0,0,120);
+    rect(0, 20, width-185, 75);
+    fill(255,0,0,75);
+    rect(0, 0, width-185, 20);
+    
+    fill(255,0,0,175);
+    rect(width-185, 0, 185, height);
+    
+    fill(255);
+    rect(10, 40, 20, 12.5, 0, 5, 5, 0);
+    rect(10, 55, 20, 12.5, 0, 5, 5, 0);
+    
+    textStyle(NORMAL);
+    textSize(7.5);
+    textAlign(CENTER,CENTER);
+    text('BO/RDS',20,75);
+    
+    //draw drawing tools
+    drawTools();
+    
+    //draw artboards+thumbnails    
+    for (let i=0; i<numBoards; i++) {
+        thumbnails[i].change_y(25+(75*i)-thumbnail_up);
+        thumbnails[i].display();
+        thumbnails[i].mouseControl(i);
+        thumbnails[i].set_html(temp[i]);
+        
+        noStroke();
+        fill(255);
+        textFont('Roboto Mono');
+        textSize(8);
+        textAlign(CENTER, CENTER);
+        text(i+1, width-155, 55+(75*i)-thumbnail_up); 
+        
+        saved_thumbnails[i].change_y(25+(75*i)-thumbnail_up);
+        saved_thumbnails[i].display();   
+    }
+    
+    //draw scrollbar
+    scrollbar.update();
+    scrollbar.display();
+    
+    //text area
+    noStroke();
+    fill(255);
+    textSize(10);
+    textAlign(LEFT);
+    text('PROJECT TITLE:',width/20*1.75+776+40,height/5+165-160);
+    text('SKETCHED BY:',width/20*1.75+776+40,height/5+225-160);
+    text('CAPTION:',width/20*1.75+776+40,height/5+297.5-160);
+    text('NOTES:',width/20*1.75+776+40,height/5+405-160);
+    textSize(7.5);
+    text('(TEXT BOX)',width/20*1.75+776+40,height/5+512.5-160);
+    
+    strokeWeight(2.5);
+    stroke(255,0,0);
+    line(width/20*1.75+776+40, height/5+275-160, width/20*1.75+776+40+270, height/5+275-160);
+    
+    noStroke();
+    fill(255,0,0,25);
+    rect(width/20*1.75+776+40, height/5+172.5-160, 270, 32.5);
+    rect(width/20*1.75+776+40, height/5+232.5-160, 270, 22.5);
+    rect(width/20*1.75+776+40, height/5+305-160, 270, 80);
+    rect(width/20*1.75+776+40, height/5+412.5-160, 270, 80);
+    
+    fill(255);
+    textStyle(BOLD);
+    textSize(22.5);
+    text(title_content,width/20*12.5,190);
+    textSize(15);
+    text(name_content,width/20*12.5,245);
+    textStyle(NORMAL);
+    textSize(10);
+    text(caption_content,width/20*1.75+776+40,300);
+    text(notes_content,width/20*1.75+776+40,407.5);
+    
+    //loading screen
+    noStroke();
+    fill(255,0,0,screenTransparency);
+    rect(0, 0, width, height);
+    fill(255,255,255,screenTransparency);
+    textAlign(CENTER,CENTER);
+    textSize(15);
+    textStyle(BOLD);
+    textSize(50);
+    text('BO/RDS',width/2,height/2);
+    textStyle(NORMAL);
+    textSize(15);
+    text('QUICKLY ILLUSTRATE YOUR STORYTELLING IDEAS.',width/2,height/2+50);
+    textStyle(ITALIC);
+    textSize(15);
+    text('LOADING',width/2,height/2+150);
+    fill(255,255,255,dot1);
+    circle(width/2-15,height/2+175,5);
+    fill(255,255,255,dot2);
+    circle(width/2,height/2+175,5);
+    fill(255,255,255,dot3);
+    circle(width/2+15,height/2+175,5);
+    
+    if (millis() >= 1000) {
+        dot1 = 0;
+    }
+    if (millis() >= 2000) {
+        dot2 = 0;
+    }
+    if (millis() >= 3000) {
+        dot3 = 0;
+    }
+    if (millis() >= 4000) {
+        screenTransparency = 0;
+    }
+}
+    
 class Board {
     constructor() {
-        this.x = 150;
-        this.y = height/2+25;
+        this.x = width/20*1.75;
+        this.y = height/5;
         this.width = 776;
         this.height = 480;
     }
@@ -459,13 +551,13 @@ class Board {
     display() {
         noStroke();
         fill(255);
-        rect(this.x, this.y-(this.height/2), this.width, this.height, 2.5, 2.5, 2.5, 2.5);
+        rect(this.x, this.y, this.width, this.height, 2.5, 2.5, 2.5, 2.5);
     }
 }
 
 class Thumbnail {
     constructor() {
-        this.x = width-150;
+        this.x = width-140;
         this.y = 25;
         this.width = 97;
         this.height = 60;
@@ -501,8 +593,6 @@ class Thumbnail {
             displayKey = this.html;
             board_no = i;
             showDrawing(this.html);
-            print('show board no:' + board_no);
-            print('this.caption: '+ this.caption);
             stopPlay();
             caption_content = this.caption;
             notes_content = this.notes;
@@ -557,7 +647,7 @@ class Saved_thumbnail {
     
     display() {
         if(this.exist) { 
-            image(this.img, width-150, this.y);
+            image(this.img, width-140, this.y);
             this.img.resize(97,60);
         }
     }
@@ -627,7 +717,7 @@ function drawTools() {
     //brush
     push();
         angleMode(DEGREES);
-        translate(240,-85);
+        translate(width/20*1.75,-85);
         rotate(45);
     
         stroke(255);
@@ -647,11 +737,11 @@ function drawTools() {
     push();
     stroke(255);
     strokeWeight(eraserSlider.value());
-    line(1072.5, 40, 1090, 47.5);
+    line(width/20*10.925, 40, width/20*11.1, 47.5);
     pop();
     
     push();
-        translate(1050,40);
+        translate(width/20*10.625,40);
         rotate(45);
         
         noFill();
@@ -662,115 +752,119 @@ function drawTools() {
     pop();
     
     //slider format
+    textSize(10);
+    textAlign(LEFT);
+    text('BRUSH TOOL:',width/20*1.5,12.5);
+    text('SHAPE TOOL:',width/20*5,12.5);
+    text('ERASER TOOL:',width/20*9.75,12.5);
+    text('PLAY YOUR BOARDS:',width/20*14.375,12.5);
     textSize(7.5);
-    text('STROKE WEIGHT:',390,40);
-    text('1',360,60);
-    text('10',450,60);
-    text('STROKE WEIGHT:',830,40);
-    text('1',800,60);
-    text('10',890,60);
-    text('STROKE WEIGHT:',1150,40);
-    text('2.5',1125,60);
-    text('50',1210,60);
+    text('STROKE WEIGHT:',width/20*3.25,40);
+    text('1',width/20*3.25,60);
+    text('10',width/20*4.35,60);
+    text('STROKE WEIGHT:',width/20*8,40);
+    text('1',width/20*8,60);
+    text('10',width/20*9.1,60);
+    text('STROKE WEIGHT:',width/20*11.5,40);
+    text('2.5',width/20*11.5,60);
+    text('50',width/20*12.6,60);
+    textSize(7.5);
+    text('DURATION',width/20*15.5,35);
+    text('PER BOARD:',width/20*15.5,45);
+    text('SECOND(S)',width/20*15.5,82.5);
     
     //lines
     strokeWeight(2.5);
     stroke(50);
-    line(150,25,150,90);
-    line(480,25,480,90);
-    line(920,25,920,90);
-    line(1240,25,1240,90);
+    line(width/20*1.25,5,width/20*1.25,90);
+    line(width/20*4.75,5,width/20*4.75,90);
+    line(width/20*9.5,5,width/20*9.5,90);
+    line(width/20*14.125,5,width/20*14.125,90);
+    line(width/20*16.5,5,width/20*16.5,90);
     
     //shapes
     noStroke();
-    square(517.5, 37.5, 40);
-    circle(607.5, 57.5, 40);
-    triangle(677.5, 37.5, 697.5, 77.5, 657.5, 77.5);
+    fill(255,0,0);
+    square(width/20*5.175, 37.5, 40);
+    circle(width/20*6.425, 57.5, 40);
     noFill();
-    strokeWeight(2.5);
-    stroke(255);
-    square(735, 37.5, 40);
+    strokeWeight(shapeSlider.value());
+    stroke(255, rectTransparency);
+    square(width/20*7.125, 37.5, 40);
+    stroke(255, ellTransparency);
+    circle(width/20*7.125+20, 57.5, 40);
 }
 
-function saveDrawing(key) {
+function mouseDragged() {
+    if (withinCanvas && recttool && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+        var sth = drawing[rect_no];
+        var path = sth[0];
+        path.w = path.x-mouseX;
+        path.h = path.y-mouseY;
+    }  
+    if (withinCanvas && elltool && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+        var sth = drawing[ell_no];
+        var path = sth[0];
+        path.w = path.x-mouseX;
+        path.h = path.y-mouseY;
+    }
+}
+
+function mouseReleased() {
+    if (withinCanvas && recttool && mouseX >= 150 && mouseX <= 150+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+        var sth = drawing[rect_no];
+        var path = sth[0];
+        path.w = path.x-mouseX;
+        path.h = path.y-mouseY;
+        
+        withinCanvas = false;
+    }
+    if (withinCanvas && elltool && mouseX >= 150 && mouseX <= 150+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+        var sth = drawing[ell_no];
+        var path = sth[0];
+        path.w = path.x-mouseX;
+        path.h = path.y-mouseY;
+        
+        withinCanvas = false;
+    }
+}
+
+function saveDrawing() {   
     if (saving) {
-        let ref = database.ref('drawings');
-        let data = {
-            drawing: drawing,
-            title: title_content,
-            name: name_content,
-            caption: caption_content,
-            notes: notes_content,
-        }
-
-        ref.child(key).update({'drawing': drawing});
-        ref.child(key).update({'title': title_content});
-        ref.child(key).update({'name': name_content});
-        ref.child(key).update({'caption': caption_content});
-        ref.child(key).update({'notes': notes_content});
+        storage[board_no].drawings = drawing;
+        storage[board_no].title = title_content;
+        storage[board_no].name = name_content;
+        storage[board_no].caption = caption_content;
+        storage[board_no].notes = notes_content;
     }
 }
 
-function saveDrawing2() {
-    let ref = database.ref('drawings');
-    let data = {
-        drawing: drawing,
-        title: title_content,
-        name: name_content,
-        caption: caption_content,
-        notes: notes_content,
-    }
+function showDrawing() {
+    var drawings = storage[board_no];
+    drawing = drawings.drawings;
     
-    //ref.child(key).update({'drawing': drawing})
-    
-    //var updates = {};
-    //updates['/drawing/' + key] = data;
-    //ref.update(updates);
-    ref.push(data);
+    title_content = drawings.title;
+    name_content = drawings.name;
+    caption_content = drawings.caption;
+    notes_content = drawings.notes;
+    thumbnails[board_no].save_caption(drawings.caption);
+    thumbnails[board_no].save_name(drawings.name);
+    thumbnails[board_no].save_notes(drawings.notes);
+    thumbnails[board_no].save_title(drawings.title);
 }
 
-function gotData(data) {
-    let elts = selectAll('.listing');
-    for (let i=0; i<elts.length; i++) {
-        elts[i].remove();
-    }
+function showDrawing2(i) {
+    var drawings = storage[i];
+    drawing = drawings.drawings;
     
-    let drawings = data.val();
-    let keys = Object.keys(drawings);
-    for (let i=0; i<keys.length; i++) {
-        var key = keys[i];
-        append(temp, key);
-    }
-    
-    if(init) {
-        displayKey = temp[0];
-        showDrawing(temp[0]);
-        init = false;
-    }
-}
-
-function errorData(error) {
-    console.log(error);
-}
-
-function showDrawing(key) {
-    var ref = database.ref('drawings/'+key); 
-    ref.once('value', oneDrawing, errorData);
-
-    function oneDrawing(data) {
-        var drawings = data.val();
-        drawing = drawings.drawing;
-        title_content = drawings.title;
-        name_content = drawings.name;
-        caption_content = drawings.caption;
-        notes_content = drawings.notes;
-        print('loaded title : ' + title_content);
-        print('loaded caption : ' + caption_content);
-        thumbnails[board_no].save_caption(drawings.caption);
-        thumbnails[board_no].save_name(drawings.name);
-        thumbnails[board_no].save_notes(drawings.notes);
-        thumbnails[board_no].save_title(drawings.title);
-    }
+    title_content = drawings.title;
+    name_content = drawings.name;
+    caption_content = drawings.caption;
+    notes_content = drawings.notes;
+    thumbnails[i].save_caption(drawings.caption);
+    thumbnails[i].save_name(drawings.name);
+    thumbnails[i].save_notes(drawings.notes);
+    thumbnails[i].save_title(drawings.title);
 }
 
 function clearDrawing() {
@@ -789,47 +883,92 @@ function clearDrawing() {
     drawing.push(currentPath);
     saving = true;
     
-    saveBoard = get(150,height/2+25-240,776,480);
+    saveBoard = get(width/20*1.75,height/5,776,480);
     saved_thumbnails[board_no].change_exist();
     saved_thumbnails[board_no].save_img(saveBoard); 
+} 
+
+function initialDOM() {
+    textbox.position(-975, 487.5);
+    textbox.size(244, 77.5);
+    inputDuration.position(-975, 610);
+    inputDuration.size(55, 20);
+    
+    brushButton.position(-175, 25);
+    brushButton.size(65, 65);
+    brushSlider.position(-355, 55);
+    brushSlider.size(100, 25);
+    
+    squareButton.position(-505, 25);
+    circleButton.position(-575, 25);
+    squareButton.size(65, 65);
+    circleButton.size(65, 65);
+    shapeSlider.position(-795, 55);
+    shapeSlider.size(100, 25);
+    
+    eraserButton.position(-945, 25);
+    eraserButton.size(65, 65);
+    eraserSlider.position(-1115, 55);
+    eraserSlider.size(100, 25);
+    
+    selectBox.position(-1100, 472.5);
+    selectBox.size(125, 16);
+    submitButton.position(-1225, 487.5);
+    submitButton.size(20, 83.5);
+    playButton.position(-1050, 585);
+    playButton.size(90, 57.5);
+    clearButton.position(-1155, 585);
+    clearButton.size(90, 57.5);
 }
 
 function repositionAll() {
-    textbox.position(975, 487.5);
-    textbox.size(244, 77.5);
-    inputDuration.position(975, 610);
+    inputTitle.position(width/20*1.75+776+40, height/5+172.5-160);
+    inputTitle.size(264, 30);
+    inputName.position(width/20*1.75+776+40, height/5+232.5-160);
+    inputName.size(264, 20);
+    textbox.position(width/20*1.75+775+40, height/5+542.5-160);
+    textbox.size(266, 80);
+    inputDuration.position(width/20*15.5, 52.5);
     inputDuration.size(55, 20);
     
-    brushButton.position(175, 25);
+    brushButton.position(width/20*1.5, 25);
     brushButton.size(65, 65);
-    brushSlider.position(355, 55);
-    brushSlider.size(100, 25);
+    brushSlider.position(width/20*3.25, 55);
+    brushSlider.size(90, 25);
     
-    squareButton.position(505, 25);
-    circleButton.position(575, 25);
-    triangleButton.position(645, 25);
+    squareButton.position(width/20*5, 25);
+    circleButton.position(width/20*6, 25);
     squareButton.size(65, 65);
     circleButton.size(65, 65);
-    triangleButton.size(65, 65);
-    shapeSlider.position(795, 55);
-    shapeSlider.size(100, 25);
+    shapeSlider.position(width/20*8, 55);
+    shapeSlider.size(90, 25);
     
-    eraserButton.position(945, 25);
+    eraserButton.position(width/20*9.75, 25);
     eraserButton.size(65, 65);
-    eraserSlider.position(1115, 55);
-    eraserSlider.size(100, 25);
+    eraserSlider.position(width/20*11.5, 55);
+    eraserSlider.size(90, 25);
     
-    selectBox.position(1100, 472.5);
-    selectBox.size(125, 16);
-    submitButton.position(1225, 487.5);
-    submitButton.size(20, 83.5);
-    playButton.position(1050, 585);
-    playButton.size(90, 57.5);
-    clearButton.position(1155, 585);
-    clearButton.size(90, 57.5);
+    selectBox.position(width/20*1.75+775+40, height/5+520-160);
+    selectBox.size(193.5, 22.5);
+    submitButton.position(width/20*1.75+776+233.5, height/5+520.75-160);
+    submitButton.size(76.5, 20.75);
+    playButton.position(width/20*14.375, 25);
+    playButton.size(65, 65);
+    clearButton.position(width/20*13, 25);
+    clearButton.size(65, 65);
+    saveButton.position(width/20*1.75+776/2-50, height/5+480+20);
+    saveButton.size(100, 30);
+    
+    for (let i=0; i<numBoards; i++) {
+        artboards[i].x = width/20*1.75;
+        artboards[i].y = height/5;
+        thumbnails[i].x = width-140;
+    }
 }
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
     repositionAll();
+    scrollbar.barX = width-20;
+    scrollbar.barH = height;
 }
