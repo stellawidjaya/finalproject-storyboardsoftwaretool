@@ -93,4 +93,11 @@ textarea:hover {
     background-color: red;
 }
 
+.par {
+    max-width: 260px;
+    max-height: 75px;
+    color: white;
+    font-size: 10px;
+    font-family: Roboto Mono;
+}
 

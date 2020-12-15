@@ -29,6 +29,8 @@ let textbox;
 let inputText;
 let duration;
 let inputDuration;
+let caption;
+let notes;
 
 let title_content = "";
 let name_content = "";
@@ -123,6 +125,10 @@ function setup() {
     inputTitle.class('titlebox');
     inputName = createInput(name_content);
     inputName.class('namebox');
+    caption = createElement('h2', caption_content);
+    caption.class('par');
+    notes = createElement('h2', notes_content);
+    notes.class('par');
     
     selectBox = createSelect();
     selectBox.option('CAPTION');
@@ -138,7 +144,6 @@ function setup() {
     brushButton = createButton('ACTIVATE BRUSH');
     squareButton = createButton('ACTIVATE RECTANGLE');
     circleButton = createButton('ACTIVATE ELLIPSE');
-    //triangleButton = createButton('DRAW TRIANGLE');
     eraserButton = createButton('ACTIVATE ERASER');
     submitButton = createButton('SUBMIT');
     playButton = createButton('PLAY BOARDS');
@@ -190,9 +195,7 @@ function activateBrush() {
     erasertool = false;
     recttool = false;
     elltool = false;
-    shapetool = false;
-    //mouseCursor = cursor(circle_img,10,10);
-    
+    shapetool = false;    
 }
 
 function shapeSquare() {
@@ -205,7 +208,6 @@ function shapeSquare() {
     rectTransparency = 255;
     ellTransparency = 0;
     mouseCursor = cursor(CROSS);
-    
 }
 
 function shapeCircle() {
@@ -256,18 +258,14 @@ function stopPlay() {
 function submitText() {
     let value = selectBox.value();
     
-    if (value == 'TITLE') {
-        title_content = textbox.value();
-        thumbnails[0].save_title(title_content);
-    } else if (value == 'NAME') {
-        name_content = textbox.value();
-        thumbnails[0].save_name(name_content);
-    } else if (value == 'CAPTION') {
+    if (value == 'CAPTION') {
         caption_content = textbox.value();
         thumbnails[board_no].save_caption(caption_content);
+        caption.html(caption_content);
     } else if (value == 'NOTES') {
         notes_content = textbox.value();
         thumbnails[board_no].save_notes(notes_content);
+        notes.html(notes_content);
     }
 }
 
@@ -286,15 +284,10 @@ function startPath() {
 function endPath() {
     isDrawing = false;
     shapeSwitch = true;
-    
-    drawing_temp[board_no] = drawing;
-        
+            
     saveBoard = get(width/20*1.75,height/5,776,480);
     saved_thumbnails[board_no].change_exist();
     saved_thumbnails[board_no].save_img(saveBoard);
-    
-    print(drawing);
-    print(storage);
 }
 
 function downloadSketch() {
@@ -379,7 +372,8 @@ function draw() {
         }
     }
     
-    //draw brushdstroke
+    push();
+    //draw brushstroke & shapes
     for (let i=0; i<drawing.length; i++) {
         var path = drawing[i];
         
@@ -391,36 +385,28 @@ function draw() {
                 stroke(path[j].r, path[j].g, path[j].b);
                 vertex(path[j].x, path[j].y);
             }
-        }
-        endShape();
-    }
-    
-    //draw shapes
-    for (let i=0; i<drawing.length; i++) {
-        var shape = drawing[i];
-        
-        noFill();
-        for (let j=0; j<shape.length; j++) {
-            if (shape[j].type == 'rectangle'){
-                strokeWeight(shape[j].stroke);
+            endShape();
+            if (path[j].type == 'rectangle') {
+                strokeWeight(path[j].stroke);
                 stroke(50);
-                s.scribbleRect(shape[j].x-shape[j].w/2, shape[j].y-shape[j].h/2, shape[j].w, shape[j].h);
+                s.scribbleRect(path[j].x-path[j].w/2, path[j].y-path[j].h/2, path[j].w, path[j].h);
             }
-            if (shape[j].type == 'ellipse') {
-                strokeWeight(shape[j].stroke);
+            if (path[j].type == 'ellipse') {
+                strokeWeight(path[j].stroke);
                 stroke(50);
-                s.scribbleEllipse(shape[j].x, shape[j].y, shape[j].w*2, shape[j].h*2);
-            }
+                s.scribbleEllipse(path[j].x, path[j].y, path[j].w*2, path[j].h*2);
+            } 
         }
     }
+    pop();
     
     //layering
     noStroke();
     fill(50);
     rect(width/20*1.75, 100, -60, height-100);
     rect(width/20*1.75+776, 100, 40, height-100);
-    rect(width/20*1.75-60, height/2+25-240, 776+120, -40);
-    rect(width/20*1.75-60, height/2+25+240, 776+120, 40);
+    rect(width/20*1.75-60, height/5, 776+120, -40);
+    rect(width/20*1.75-60, height/5+480, 776+120, 40);
     
     //draw logo banner
     noStroke();
@@ -498,10 +484,6 @@ function draw() {
     text(title_content,width/20*12.5,190);
     textSize(15);
     text(name_content,width/20*12.5,245);
-    textStyle(NORMAL);
-    textSize(10);
-    text(caption_content,width/20*1.75+776+40,300);
-    text(notes_content,width/20*1.75+776+40,407.5);
     
     //loading screen
     noStroke();
@@ -590,9 +572,9 @@ class Thumbnail {
             thumbnails[ind_red].change_trans(0);
             ind_red = i;
             this.transparency = 255;
-            displayKey = this.html;
+            //displayKey = this.html;
             board_no = i;
-            showDrawing(this.html);
+            showDrawing();
             stopPlay();
             caption_content = this.caption;
             notes_content = this.notes;
@@ -870,17 +852,6 @@ function showDrawing2(i) {
 function clearDrawing() {
     saving = false;
     drawing = [];
-    var point = {
-                x: 405,
-                y: 259,
-                stroke: 5,
-                r: 255,
-                g: 255,
-                b: 255,
-                type: 'point',
-            }
-    currentPath.push(point);
-    drawing.push(currentPath);
     saving = true;
     
     saveBoard = get(width/20*1.75,height/5,776,480);
@@ -930,6 +901,10 @@ function repositionAll() {
     textbox.size(266, 80);
     inputDuration.position(width/20*15.5, 52.5);
     inputDuration.size(55, 20);
+    caption.position(width/20*1.75+776+40,height/5+297.5-160);
+    caption.size(260,20);
+    notes.position(width/20*1.75+776+40,height/5+405-160);
+    notes.size(260,20);
     
     brushButton.position(width/20*1.5, 25);
     brushButton.size(65, 65);
