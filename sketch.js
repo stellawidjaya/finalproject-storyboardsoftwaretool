@@ -89,6 +89,13 @@ let saving = true;
 let duration_content = 2;
 let text_content = 'Input your text here...'
 
+let A;
+let B;
+let C;
+let D;
+let E;
+let F;
+
 function setup() {
     canvas = createCanvas(windowWidth, windowHeight);
     canvas.mousePressed(startPath);
@@ -106,6 +113,8 @@ function setup() {
             notes: notes_content,
         })
     }
+    
+   
 
     //create artboards+thumbnails
     for (let i=0; i<numBoards; i++) {
@@ -168,12 +177,8 @@ function setup() {
     clearButton.class('shapebuttons');
     saveButton.class('shapebuttons');
           
-    initialDOM();
-    
-    displayKey = temp[0];
-
     //create scrollbar
-    scrollX = width-20
+    scrollX = width-20;
     scrollbar = new Scrollbar(scrollX, 0, 10, height);
     
     //activate scribble
@@ -285,13 +290,23 @@ function endPath() {
     isDrawing = false;
     shapeSwitch = true;
             
-    saveBoard = get(width/20*1.75,height/5,776,480);
+    if (width <= 1400) {
+        saveBoard = get(width/20,height/5,776,480);
+    } else if (width > 1400) {
+        saveBoard = get(width/20*1.75,height/5,776,480);
+    }
+    
     saved_thumbnails[board_no].change_exist();
     saved_thumbnails[board_no].save_img(saveBoard);
 }
 
 function downloadSketch() {
-    var sketch = get(width/20*1.75+1,height/5+1,776-3,480-3);
+    if (width <= 1400) {
+        var sketch = get(width/20+1,height/5+1,776-3,480-3);
+    } else if (width >= 1400) {
+        var sketch = get(width/20*1.75+1,height/5+1,776-3,480-3);
+    }
+    
     sketch.save('sketchboard'+(board_no+1), 'jpg');
 }
 
@@ -329,50 +344,94 @@ function draw() {
         value = shapeSlider.value();
     }
     
-    if (isDrawing && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
-        if (brushtool || erasertool) {
-            var point = {
-                x: mouseX,
-                y: mouseY,
-                stroke: value,
-                r: clrR,
-                g: clrG,
-                b: clrB,
-                type: 'point',
+    if (width <= 1400) {
+        if (isDrawing && mouseX >= width/20 && mouseX <= width/20+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            if (brushtool || erasertool) {
+                var point = {
+                    x: mouseX,
+                    y: mouseY,
+                    stroke: value,
+                    r: clrR,
+                    g: clrG,
+                    b: clrB,
+                    type: 'point',
+                }
+                currentPath.push(point);
             }
-            currentPath.push(point);
+            else if (shapetool && shapeSwitch && recttool){
+                var rectangle = {
+                    x: mouseX,
+                    y: mouseY,
+                    stroke: value,
+                    w: 0,
+                    h: 0,
+                    type: 'rectangle',
+                }
+                shapeSwitch = false;
+                currentShape.push(rectangle);
+                rect_no = drawing.length-1;
+                withinCanvas = true;
+            }
+            else if (shapetool && elltool && shapeSwitch) {
+                var ellipse = {
+                    x: mouseX,
+                    y: mouseY,
+                    stroke: value,
+                    w: 0,
+                    h: 0,
+                    type: 'ellipse',
+                }
+                shapeSwitch = false;
+                currentShape.push(ellipse);
+                ell_no = drawing.length-1;
+                withinCanvas = true;
+            }
         }
-        else if (shapetool && shapeSwitch && recttool){
-            var rectangle = {
-                x: mouseX,
-                y: mouseY,
-                stroke: value,
-                w: 0,
-                h: 0,
-                type: 'rectangle',
+    } else if (width >= 1400) {
+        if (isDrawing && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            if (brushtool || erasertool) {
+                var point = {
+                    x: mouseX,
+                    y: mouseY,
+                    stroke: value,
+                    r: clrR,
+                    g: clrG,
+                    b: clrB,
+                    type: 'point',
+                }
+                currentPath.push(point);
             }
-            shapeSwitch = false;
-            currentShape.push(rectangle);
-            rect_no = drawing.length-1;
-            withinCanvas = true;
-        }
-        else if (shapetool && elltool && shapeSwitch) {
-            var ellipse = {
-                x: mouseX,
-                y: mouseY,
-                stroke: value,
-                w: 0,
-                h: 0,
-                type: 'ellipse',
+            else if (shapetool && shapeSwitch && recttool){
+                var rectangle = {
+                    x: mouseX,
+                    y: mouseY,
+                    stroke: value,
+                    w: 0,
+                    h: 0,
+                    type: 'rectangle',
+                }
+                shapeSwitch = false;
+                currentShape.push(rectangle);
+                rect_no = drawing.length-1;
+                withinCanvas = true;
             }
-            shapeSwitch = false;
-            currentShape.push(ellipse);
-            ell_no = drawing.length-1;
-            withinCanvas = true;
+            else if (shapetool && elltool && shapeSwitch) {
+                var ellipse = {
+                    x: mouseX,
+                    y: mouseY,
+                    stroke: value,
+                    w: 0,
+                    h: 0,
+                    type: 'ellipse',
+                }
+                shapeSwitch = false;
+                currentShape.push(ellipse);
+                ell_no = drawing.length-1;
+                withinCanvas = true;
+            }
         }
     }
     
-    push();
     //draw brushstroke & shapes
     for (let i=0; i<drawing.length; i++) {
         var path = drawing[i];
@@ -398,29 +457,49 @@ function draw() {
             } 
         }
     }
-    pop();
     
     //layering
     noStroke();
     fill(50);
-    rect(width/20*1.75, 100, -150, height-100);
-    rect(width/20*1.75+776, 100, 150, height-100);
-    rect(width/20*1.75-60, height/5, 776+120, -150);
-    rect(width/20*1.75-60, height/5+480, 776+120, 150);
+    if (width <= 1400) {
+        rect(width/20, 100, -150, height-100);
+        rect(width/20+776, 100, 150, height-100);
+        rect(width/20-100, height/5, 776+200, -150);
+        rect(width/20-100, height/5+480, 776+200, 150);
+    } else if (width >= 1400) {
+        rect(width/20*1.75, 100, -150, height-100);
+        rect(width/20*1.75+776, 100, 150, height-100);
+        rect(width/20*1.75-100, height/5, 776+200, -150);
+        rect(width/20*1.75-100, height/5+480, 776+200, 150);
+    }
     
     //draw logo banner
     noStroke();
     fill(255,0,0);
     rect(0, 0, 40, height);
     
-    fill(255,0,0,120);
-    rect(0, 20, width-185, 75);
-    fill(255,0,0,75);
-    rect(0, 0, width-185, 20);
+    //top
+    if (width <= 1400) {
+        fill(255,0,0,120);
+        rect(0, 20, width-160, 75);
+        fill(255,0,0,75);
+        rect(0, 0, width-160, 20);
+    } else if (width >= 1400) {
+        fill(255,0,0,120);
+        rect(0, 20, width-185, 75);
+        fill(255,0,0,75);
+        rect(0, 0, width-185, 20);
+    }
     
+    //right
     fill(255,0,0,175);
-    rect(width-185, 0, 185, height);
+    if (width <= 1400) {
+        rect(width-160, 0, 160, height);
+    } else if (width >= 1400) {
+        rect(width-185, 0, 185, height);
+    }
     
+    //logo
     fill(255);
     rect(10, 40, 20, 12.5, 0, 5, 5, 0);
     rect(10, 55, 20, 12.5, 0, 5, 5, 0);
@@ -430,7 +509,7 @@ function draw() {
     textAlign(CENTER,CENTER);
     text('BO/RDS',20,75);
     
-    //draw drawing tools
+    //draw drawing tools    
     drawTools();
     
     //draw artboards+thumbnails    
@@ -445,7 +524,11 @@ function draw() {
         textFont('Roboto Mono');
         textSize(8);
         textAlign(CENTER, CENTER);
-        text(i+1, width-155, 55+(75*i)-thumbnail_up); 
+        if (width <= 1400) {
+            text(i+1, width-140, 55+(75*i)-thumbnail_up); 
+        } else if (width >= 1400) {
+            text(i+1, width-155, 55+(75*i)-thumbnail_up); 
+        }
         
         saved_thumbnails[i].change_y(25+(75*i)-thumbnail_up);
         saved_thumbnails[i].display();   
@@ -456,34 +539,48 @@ function draw() {
     scrollbar.display();
     
     //text area
-    noStroke();
-    fill(255);
-    textSize(10);
-    textAlign(LEFT);
-    text('PROJECT TITLE:',width/20*1.75+776+40,height/5+165-160);
-    text('SKETCHED BY:',width/20*1.75+776+40,height/5+225-160);
-    text('CAPTION:',width/20*1.75+776+40,height/5+297.5-160);
-    text('NOTES:',width/20*1.75+776+40,height/5+405-160);
-    textSize(7.5);
-    text('(TEXT BOX)',width/20*1.75+776+40,height/5+512.5-160);
-    
-    strokeWeight(2.5);
-    stroke(255,0,0);
-    line(width/20*1.75+776+40, height/5+275-160, width/20*1.75+776+40+270, height/5+275-160);
-    
-    noStroke();
-    fill(255,0,0,25);
-    rect(width/20*1.75+776+40, height/5+172.5-160, 270, 32.5);
-    rect(width/20*1.75+776+40, height/5+232.5-160, 270, 22.5);
-    rect(width/20*1.75+776+40, height/5+305-160, 270, 80);
-    rect(width/20*1.75+776+40, height/5+412.5-160, 270, 80);
-    
-    fill(255);
-    textStyle(BOLD);
-    textSize(22.5);
-    text(title_content,width/20*12.5,190);
-    textSize(15);
-    text(name_content,width/20*12.5,245);
+    if (width <= 1400) {
+        noStroke();
+        fill(255);
+        textAlign(LEFT);
+        textSize(10);
+        text('PROJECT TITLE:',width/20+776+20,height/5+165-160);
+        text('SKETCHED BY:',width/20+776+20,height/5+225-160);
+        text('CAPTION:',width/20+776+20,height/5+297.5-160);
+        text('NOTES:',width/20+776+20,height/5+405-160);
+        textSize(7.5);
+        text('(TEXT BOX)',width/20+776+20,height/5+512.5-160);
+        
+        strokeWeight(2.5);
+        stroke(255,0,0);
+        line(width/20+776+20, height/5+275-160, width/20+776+20+250, height/5+275-160);
+        
+        noStroke();
+        fill(255,0,0,25);
+        rect(width/20+776+20, height/5+305-160, 250, 80);
+        rect(width/20+776+20, height/5+412.5-160, 250, 80);
+    } 
+    else if (width >= 1400) {
+        noStroke();
+        fill(255);
+        textAlign(LEFT);
+        textSize(10);
+        text('PROJECT TITLE:',width/20*1.75+776+40,height/5+165-160);
+        text('SKETCHED BY:',width/20*1.75+776+40,height/5+225-160);
+        text('CAPTION:',width/20*1.75+776+40,height/5+297.5-160);
+        text('NOTES:',width/20*1.75+776+40,height/5+405-160);
+        textSize(7.5);
+        text('(TEXT BOX)',width/20*1.75+776+40,height/5+512.5-160);
+        
+        strokeWeight(2.5);
+        stroke(255,0,0);
+        line(width/20*1.75+776+40, height/5+275-160, width/20*1.75+776+40+270, height/5+275-160);
+        
+        noStroke();
+        fill(255,0,0,25);
+        rect(width/20*1.75+776+40, height/5+305-160, 270, 80);
+        rect(width/20*1.75+776+40, height/5+412.5-160, 270, 80);
+    }
     
     //loading screen
     noStroke();
@@ -572,7 +669,6 @@ class Thumbnail {
             thumbnails[ind_red].change_trans(0);
             ind_red = i;
             this.transparency = 255;
-            //displayKey = this.html;
             board_no = i;
             showDrawing();
             stopPlay();
@@ -629,7 +725,7 @@ class Saved_thumbnail {
     
     display() {
         if(this.exist) { 
-            image(this.img, width-140, this.y);
+            image(this.img, this.x, this.y);
             this.img.resize(97,60);
         }
     }
@@ -699,7 +795,7 @@ function drawTools() {
     //brush
     push();
         angleMode(DEGREES);
-        translate(width/20*1.75,-85);
+        translate(width/20*1.6,-85);
         rotate(45);
     
         stroke(255);
@@ -717,16 +813,13 @@ function drawTools() {
     
     //eraser
     push();
-    stroke(255);
-    strokeWeight(eraserSlider.value());
-    line(width/20*10.925, 40, width/20*11.1, 47.5);
-    pop();
-    
-    push();
-        translate(width/20*10.625,40);
+        translate(width/20*11,40);
         rotate(45);
         
         noFill();
+        stroke(255);
+        strokeWeight(eraserSlider.value());
+        line(15, -15, 27.5, -22.5);
         stroke(255,0,0);
         strokeWeight(1.5);
         rect(0, 0, 30, 30);
@@ -736,78 +829,112 @@ function drawTools() {
     //slider format
     textSize(10);
     textAlign(LEFT);
-    text('BRUSH TOOL:',width/20*1.5,12.5);
-    text('SHAPE TOOL:',width/20*5,12.5);
-    text('ERASER TOOL:',width/20*9.75,12.5);
-    text('PLAY YOUR BOARDS:',width/20*14.375,12.5);
+    text('BRUSH TOOL:',width/20*1.3,12.5);
+    text('SHAPE TOOL:',width/20*5.1,12.5);
+    text('ERASER TOOL:',width/20*10.1,12.5);
+    text('PLAY YOUR BOARDS:',width/20*15,12.5);
     textSize(7.5);
-    text('STROKE WEIGHT:',width/20*3.25,40);
-    text('1',width/20*3.25,60);
-    text('10',width/20*4.35,60);
-    text('STROKE WEIGHT:',width/20*8,40);
-    text('1',width/20*8,60);
-    text('10',width/20*9.1,60);
-    text('STROKE WEIGHT:',width/20*11.5,40);
-    text('2.5',width/20*11.5,60);
-    text('50',width/20*12.6,60);
+    text('STROKE WEIGHT:',width/20*3.2,40);
+    text('1',width/20*3.2,60);
+    text('10',width/20*3.2+85,60);
+    text('STROKE WEIGHT:',width/20*8.2,40);
+    text('1',width/20*8.2,60);
+    text('10',width/20*8.2+85,60);
+    text('STROKE WEIGHT:',width/20*11.9,40);
+    text('2.5',width/20*11.9,60);
+    text('50',width/20*11.9+85,60);
     textSize(7.5);
-    text('DURATION',width/20*15.5,35);
-    text('PER BOARD:',width/20*15.5,45);
-    text('SECOND(S)',width/20*15.5,82.5);
+    text('DURATION',width/20*16.1,35);
+    text('PER BOARD:',width/20*16.1,45);
+    text('SECOND(S)',width/20*16.1,82.5);
     
     //lines
     strokeWeight(2.5);
     stroke(50);
-    line(width/20*1.25,5,width/20*1.25,90);
-    line(width/20*4.75,5,width/20*4.75,90);
-    line(width/20*9.5,5,width/20*9.5,90);
-    line(width/20*14.125,5,width/20*14.125,90);
-    line(width/20*16.5,5,width/20*16.5,90);
+    line(width/20*1,5,width/20*1,90);
+    line(width/20*4.8,5,width/20*4.8,90);
+    line(width/20*9.8,5,width/20*9.8,90);
+    line(width/20*14.7,5,width/20*14.7,90);
+    line(width/20*17.2,5,width/20*17.2,90);
     
     //shapes
     noStroke();
     fill(255,0,0);
-    square(width/20*5.175, 37.5, 40);
-    circle(width/20*6.425, 57.5, 40);
+    square(width/20*5.1+12.5, 37.5, 40);
+    circle(width/20*6.2+32.5, 57.5, 40);
     noFill();
     strokeWeight(shapeSlider.value());
     stroke(255, rectTransparency);
-    square(width/20*7.125, 37.5, 40);
+    square(width/20*7.4, 37.5, 40);
     stroke(255, ellTransparency);
-    circle(width/20*7.125+20, 57.5, 40);
+    circle(width/20*7.4+20, 57.5, 40);
 }
 
 function mouseDragged() {
-    if (withinCanvas && recttool && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
-        var sth = drawing[rect_no];
-        var path = sth[0];
-        path.w = path.x-mouseX;
-        path.h = path.y-mouseY;
-    }  
-    if (withinCanvas && elltool && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
-        var sth = drawing[ell_no];
-        var path = sth[0];
-        path.w = path.x-mouseX;
-        path.h = path.y-mouseY;
+    if (width <= 1400) {
+        if (withinCanvas && recttool && mouseX >= width/20 && mouseX <= width/20+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            var sth = drawing[rect_no];
+            var path = sth[0];
+            path.w = path.x-mouseX;
+            path.h = path.y-mouseY;
+        }  
+        if (withinCanvas && elltool && mouseX >= width/20 && mouseX <= width/20+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            var sth = drawing[ell_no];
+            var path = sth[0];
+            path.w = path.x-mouseX;
+            path.h = path.y-mouseY;
+        }
+    } else if (width >= 1400) {
+        if (withinCanvas && recttool && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            var sth = drawing[rect_no];
+            var path = sth[0];
+            path.w = path.x-mouseX;
+            path.h = path.y-mouseY;
+        }  
+        if (withinCanvas && elltool && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            var sth = drawing[ell_no];
+            var path = sth[0];
+            path.w = path.x-mouseX;
+            path.h = path.y-mouseY;
+        }
     }
 }
 
 function mouseReleased() {
-    if (withinCanvas && recttool && mouseX >= 150 && mouseX <= 150+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
-        var sth = drawing[rect_no];
-        var path = sth[0];
-        path.w = path.x-mouseX;
-        path.h = path.y-mouseY;
-        
-        withinCanvas = false;
-    }
-    if (withinCanvas && elltool && mouseX >= 150 && mouseX <= 150+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
-        var sth = drawing[ell_no];
-        var path = sth[0];
-        path.w = path.x-mouseX;
-        path.h = path.y-mouseY;
-        
-        withinCanvas = false;
+    if (width <= 1400) {
+        if (withinCanvas && recttool && mouseX >= width/20 && mouseX <= width/20+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            var sth = drawing[rect_no];
+            var path = sth[0];
+            path.w = path.x-mouseX;
+            path.h = path.y-mouseY;
+
+            withinCanvas = false;
+        }
+        if (withinCanvas && elltool && mouseX >= width/20 && mouseX <= width/20+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            var sth = drawing[ell_no];
+            var path = sth[0];
+            path.w = path.x-mouseX;
+            path.h = path.y-mouseY;
+
+            withinCanvas = false;
+        }
+    } else if (width >= 1400) {
+        if (withinCanvas && recttool && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            var sth = drawing[rect_no];
+            var path = sth[0];
+            path.w = path.x-mouseX;
+            path.h = path.y-mouseY;
+
+            withinCanvas = false;
+        }
+        if (withinCanvas && elltool && mouseX >= width/20*1.75 && mouseX <= width/20*1.75+776 && mouseY >= height/2+25-240 && mouseY <= height/2+25+240) {
+            var sth = drawing[ell_no];
+            var path = sth[0];
+            path.w = path.x-mouseX;
+            path.h = path.y-mouseY;
+
+            withinCanvas = false;
+        }
     }
 }
 
@@ -859,85 +986,81 @@ function clearDrawing() {
     saved_thumbnails[board_no].save_img(saveBoard); 
 } 
 
-function initialDOM() {
-    textbox.position(-975, 487.5);
-    textbox.size(244, 77.5);
-    inputDuration.position(-975, 610);
-    inputDuration.size(55, 20);
-    
-    brushButton.position(-175, 25);
-    brushButton.size(65, 65);
-    brushSlider.position(-355, 55);
-    brushSlider.size(100, 25);
-    
-    squareButton.position(-505, 25);
-    circleButton.position(-575, 25);
-    squareButton.size(65, 65);
-    circleButton.size(65, 65);
-    shapeSlider.position(-795, 55);
-    shapeSlider.size(100, 25);
-    
-    eraserButton.position(-945, 25);
-    eraserButton.size(65, 65);
-    eraserSlider.position(-1115, 55);
-    eraserSlider.size(100, 25);
-    
-    selectBox.position(-1100, 472.5);
-    selectBox.size(125, 16);
-    submitButton.position(-1225, 487.5);
-    submitButton.size(20, 83.5);
-    playButton.position(-1050, 585);
-    playButton.size(90, 57.5);
-    clearButton.position(-1155, 585);
-    clearButton.size(90, 57.5);
-}
-
 function repositionAll() {
-    inputTitle.position(width/20*1.75+776+40, height/5+172.5-160);
-    inputTitle.size(264, 30);
-    inputName.position(width/20*1.75+776+40, height/5+232.5-160);
-    inputName.size(264, 20);
-    textbox.position(width/20*1.75+775+40, height/5+542.5-160);
-    textbox.size(266, 80);
-    inputDuration.position(width/20*15.5, 52.5);
-    inputDuration.size(55, 20);
-    caption.position(width/20*1.75+776+40,height/5+297.5-160);
-    caption.size(260,20);
-    notes.position(width/20*1.75+776+40,height/5+405-160);
-    notes.size(260,20);
+    if (width <= 1400) {
+        inputTitle.position(width/20+776+20, height/5+172.5-160);
+        inputTitle.size(246, 30);
+        inputName.position(width/20+776+20, height/5+232.5-160);
+        inputName.size(246, 20);
+        textbox.position(width/20+775+20, height/5+542.5-160);
+        textbox.size(246, 80);
+        selectBox.position(width/20+775+20, height/5+520-160);
+        selectBox.size(183.5, 22.5);
+        submitButton.position(width/20+776+203.5, height/5+520.75-160);
+        submitButton.size(66.5, 20.75);
+        caption.position(width/20+776+20,height/5+297.5-160);
+        caption.size(260,20);
+        notes.position(width/20+776+20,height/5+405-160);
+        notes.size(260,20);
+        saveButton.position(width/20+776/2-50, height/5+480+20);
+        saveButton.size(100, 30);
+    } 
+    else if (width >= 1400) {
+        inputTitle.position(width/20*1.75+776+40, height/5+172.5-160);
+        inputTitle.size(266, 30);
+        inputName.position(width/20*1.75+776+40, height/5+232.5-160);
+        inputName.size(266, 20);
+        textbox.position(width/20*1.75+775+40, height/5+542.5-160);
+        textbox.size(266, 80);
+        selectBox.position(width/20*1.75+775+40, height/5+520-160);
+        selectBox.size(193.5, 22.5);
+        submitButton.position(width/20*1.75+776+233.5, height/5+520.75-160);
+        submitButton.size(76.5, 20.75);
+        caption.position(width/20*1.75+776+40,height/5+297.5-160);
+        caption.size(260,20);
+        notes.position(width/20*1.75+776+40,height/5+405-160);
+        notes.size(260,20);
+        saveButton.position(width/20*1.75+776/2-50, height/5+480+20);
+        saveButton.size(100, 30);
+    }
     
-    brushButton.position(width/20*1.5, 25);
+    brushButton.position(width/20*1.3, 25);
     brushButton.size(65, 65);
-    brushSlider.position(width/20*3.25, 55);
+    brushSlider.position(width/20*3.2, 55);
     brushSlider.size(90, 25);
     
-    squareButton.position(width/20*5, 25);
-    circleButton.position(width/20*6, 25);
+    squareButton.position(width/20*5.1, 25);
+    circleButton.position(width/20*6.2, 25);
     squareButton.size(65, 65);
     circleButton.size(65, 65);
-    shapeSlider.position(width/20*8, 55);
+    shapeSlider.position(width/20*8.2, 55);
     shapeSlider.size(90, 25);
     
-    eraserButton.position(width/20*9.75, 25);
+    eraserButton.position(width/20*10.1, 25);
     eraserButton.size(65, 65);
-    eraserSlider.position(width/20*11.5, 55);
+    eraserSlider.position(width/20*11.9, 55);
     eraserSlider.size(90, 25);
     
-    selectBox.position(width/20*1.75+775+40, height/5+520-160);
-    selectBox.size(193.5, 22.5);
-    submitButton.position(width/20*1.75+776+233.5, height/5+520.75-160);
-    submitButton.size(76.5, 20.75);
-    playButton.position(width/20*14.375, 25);
+    playButton.position(width/20*15, 25);
     playButton.size(65, 65);
-    clearButton.position(width/20*13, 25);
+    clearButton.position(width/20*13.5, 25);
     clearButton.size(65, 65);
-    saveButton.position(width/20*1.75+776/2-50, height/5+480+20);
-    saveButton.size(100, 30);
+    inputDuration.position(width/20*16.1, 52.5);
+    inputDuration.size(55, 20);
+    
     
     for (let i=0; i<numBoards; i++) {
-        artboards[i].x = width/20*1.75;
         artboards[i].y = height/5;
-        thumbnails[i].x = width-140;
+        
+        if (width <= 1400) {
+            artboards[i].x = width/20;
+            thumbnails[i].x = width-130;
+            saved_thumbnails[i].x = width-130;
+        } else if (width >= 1400) {
+            artboards[i].x = width/20*1.75;
+            thumbnails[i].x = width-140;
+            saved_thumbnails[i].x = width-140;
+        }
     }
 }
 
