@@ -403,10 +403,10 @@ function draw() {
     //layering
     noStroke();
     fill(50);
-    rect(width/20*1.75, 100, -60, height-100);
-    rect(width/20*1.75+776, 100, 40, height-100);
-    rect(width/20*1.75-60, height/5, 776+120, -40);
-    rect(width/20*1.75-60, height/5+480, 776+120, 40);
+    rect(width/20*1.75, 100, -150, height-100);
+    rect(width/20*1.75+776, 100, 150, height-100);
+    rect(width/20*1.75-60, height/5, 776+120, -150);
+    rect(width/20*1.75-60, height/5+480, 776+120, 150);
     
     //draw logo banner
     noStroke();
