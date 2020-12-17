@@ -86,7 +86,7 @@ let releasedY;
 
 let save;
 let saving = true;
-let duration_content = 2;
+let duration_content = 1;
 let text_content = 'Input your text here...'
 
 let A;
@@ -782,7 +782,7 @@ class Scrollbar {
         fill(50);
         rect(this.barX, this.barY, this.barW, this.barH);
         if (this.beyond || this.locked) {
-            fill(255);
+            fill(255,50,50);
         } else {
             fill('RED');
         }

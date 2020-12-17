@@ -41,7 +41,7 @@ textarea:hover {
 }
 
 .shapebuttons {
-    background-color: red;
+    background-color: rgb(255,50,50);
     color: white;
     border: none;
     font-size: 8.5px;
